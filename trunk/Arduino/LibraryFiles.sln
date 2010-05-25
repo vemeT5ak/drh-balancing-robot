@@ -1,0 +1,18 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{02A31401-7E4F-4B57-8612-5997E7F1525F}"
+	ProjectSection(SolutionItems) = preProject
+		.\libraries\ADXL330\ADXL330.cpp = .\libraries\ADXL330\ADXL330.cpp
+		.\libraries\ADXL330\ADXL330.h = .\libraries\ADXL330\ADXL330.h
+		.\libraries\IDG300\IDG300.cpp = .\libraries\IDG300\IDG300.cpp
+		.\libraries\IDG300\IDG300.h = .\libraries\IDG300\IDG300.h
+		.\libraries\TiltCalculator\TiltCalculator.cpp = .\libraries\TiltCalculator\TiltCalculator.cpp
+		.\libraries\TiltCalculator\TiltCalculator.h = .\libraries\TiltCalculator\TiltCalculator.h
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
