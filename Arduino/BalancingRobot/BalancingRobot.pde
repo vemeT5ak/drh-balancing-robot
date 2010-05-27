@@ -141,8 +141,30 @@ void HandleMotor2InterruptA()
 // The Kx values are read as integers and are devided by 1000 to get floats.
 void OnMssageCompleted()
 {
-  SetCoefficients(&balancer1);
-  SetCoefficients(&balancer2);
+  if (messenger.checkString("SendCoeffs"))
+  {
+    SendCoefficients();
+  }
+    
+  if (messenger.checkString("SetCoeffs"))
+  {
+    SetCoefficients(&balancer1);
+    SetCoefficients(&balancer2);
+  }
+}
+
+void SendCoefficients()
+{
+  Serial.print("Coefficients");
+  Serial.print("\t");
+  Serial.print(balancer1.K1, 4);
+  Serial.print("\t");
+  Serial.print(balancer1.K2, 4);
+  Serial.print("\t");
+  Serial.print(balancer1.K3, 4);
+  Serial.print("\t");
+  Serial.print(balancer1.K4, 4);
+  Serial.println();
 }
 
 void SetCoefficients(Balancer* pBalancer)
