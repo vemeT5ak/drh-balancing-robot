@@ -12,11 +12,11 @@ class PID
   #define LIBRARY_VERSION	0.6
 
   //commonly used functions **************************************************************************
-    PID(double*, double*, double*,        // * constructor.  links the PID to the Input, Output, and 
-        double, double, double);          //   Setpoint.  Initial tuning parameters are also set here
+    PID(float*, float*, float*,        // * constructor.  links the PID to the Input, Output, and 
+        float, float, float);          //   Setpoint.  Initial tuning parameters are also set here
 
-    PID(double*, double*, double*,        // * Overloaded Constructor.  if the user wants to implement
-        double*, double, double, double); //   feed-forward
+    PID(float*, float*, float*,        // * Overloaded Constructor.  if the user wants to implement
+        float*, float, float, float); //   feed-forward
 
     void SetMode(int Mode);               // * sets PID to either Manual (0) or Auto (non-0)
 
@@ -25,14 +25,14 @@ class PID
                                           //   calculation frequency can be set using SetMode
                                           //   SetSampleTime respectively
 
-    void SetInputLimits(double, double);  //Tells the PID what 0-100% are for the Input
+    void SetInputLimits(float, float);  //Tells the PID what 0-100% are for the Input
 
-    void SetOutputLimits(double, double); //Tells the PID what 0-100% are for the Output
+    void SetOutputLimits(float, float); //Tells the PID what 0-100% are for the Output
 
 
   //available but not commonly used functions ********************************************************
-    void SetTunings(double, double,       // * While most users will set the tunings once in the 
-                    double);              //   constructor, this function gives the user the option
+    void SetTunings(float, float,       // * While most users will set the tunings once in the 
+                    float);              //   constructor, this function gives the user the option
                                           //   of changing tunings during runtime for Adaptive control
 
     void SetSampleTime(int);           // * sets the frequency, in Milliseconds, with which 
@@ -48,38 +48,38 @@ class PID
 
    //Status functions allow you to query current PID constants ***************************************
     int GetMode();
-    double GetINMin();
-    double GetINMax();
-    double GetOUTMin();
-    double GetOUTMax();
+    float GetINMin();
+    float GetINMax();
+    float GetOUTMin();
+    float GetOUTMax();
     int GetSampleTime();
-    double GetP_Param();
-    double GetI_Param();
-    double GetD_Param();
+    float GetP_Param();
+    float GetI_Param();
+    float GetD_Param();
 
 
   private:
 
-    void ConstructorCommon(double*, double*, double*,           // * code that is shared by the constructors
-        double, double, double);
+    void ConstructorCommon(float*, float*, float*,           // * code that is shared by the constructors
+        float, float, float);
 
    //scaled, tweaked parameters we'll actually be using
-    double kc;                    // * (P)roportional Tuning Parameter
-    double taur;                  // * (I)ntegral Tuning Parameter
-    double taud;                  // * (D)erivative Tuning Parameter
+    float kc;                    // * (P)roportional Tuning Parameter
+    float taur;                  // * (I)ntegral Tuning Parameter
+    float taud;                  // * (D)erivative Tuning Parameter
 
    //nice, pretty parameters we'll give back to the user if they ask what the tunings are
-    double P_Param;
-    double I_Param;
-    double D_Param;
+    float P_Param;
+    float I_Param;
+    float D_Param;
 
 
-    double *myInput;              // * Pointers to the Input, Output, and Setpoint variables
-    double *myOutput;             //   This creates a hard link between the variables and the 
-    double *mySetpoint;           //   PID, freeing the user from having to constantly tell us
+    float *myInput;              // * Pointers to the Input, Output, and Setpoint variables
+    float *myOutput;             //   This creates a hard link between the variables and the 
+    float *mySetpoint;           //   PID, freeing the user from having to constantly tell us
                                   //   what these values are.  with pointers we'll just know.
 
-    double *myBias;               // * Pointer to the External FeedForward bias, only used 
+    float *myBias;               // * Pointer to the External FeedForward bias, only used 
                                   //   if the advanced constructor is used
     bool UsingFeedForward;        // * internal flag that tells us if we're using FeedForward or not
 
@@ -90,18 +90,18 @@ class PID
                                   //   the PID calculation to occur.
     bool inAuto;                  // * Flag letting us know if we are in Automatic or not
 
-    double lastOutput;            // * remembering the last output is used to prevent
+    float lastOutput;            // * remembering the last output is used to prevent
                                   //   reset windup.
-    double lastInput;             // * we need to remember the last Input Value so we can compute
+    float lastInput;             // * we need to remember the last Input Value so we can compute
                                   //   the derivative required for the D term
-    double accError;              // * the (I)ntegral term is based on the sum of error over
+    float accError;              // * the (I)ntegral term is based on the sum of error over
                                   //   time.  this variable keeps track of that
-    double bias;                  // * the base output from which the PID operates
+    float bias;                  // * the base output from which the PID operates
     
 
     
-    double inMin, inSpan;         // * input and output limits, and spans.  used convert
-    double outMin, outSpan;       //   real world numbers into percent span, with which
+    float inMin, inSpan;         // * input and output limits, and spans.  used convert
+    float outMin, outSpan;       //   real world numbers into percent span, with which
                                   //   the PID algorithm is more comfortable.
 
     bool justCalced;              // * flag gets set for one cycle after the pid calculates
