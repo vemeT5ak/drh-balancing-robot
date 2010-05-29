@@ -9,6 +9,8 @@
 #include <ADXL330.h>
 #include <IDG300.h>
 #include <TiltCalculator.h>
+#include <SpeedController.h>
+#include <PID_Beta6.h>
 
 
 ADXL330 adxl330 = ADXL330(15,14,13);
@@ -25,11 +27,15 @@ QuadratureEncoder encoderMotor1(18, 24, 22);
 // The quadrature encoder for motor 2 uses external interupt 4 on pin 19 and the regular input at pin 25
 QuadratureEncoder encoderMotor2(19, 25);
 
-Balancer balancer1 = Balancer(&encoderMotor1, 0);
-Balancer balancer2 = Balancer(&encoderMotor2, 16);
-
 unsigned long previousMilliseconds = 0;
 unsigned long updateInterval = 50; // update interval in milli seconds
+
+SpeedController speedControllerMotor1 = SpeedController(updateInterval, &encoderMotor1, 0);
+SpeedController speedControllerMotor2 = SpeedController(updateInterval, &encoderMotor1, 12);
+
+Balancer balancer1 = Balancer(&encoderMotor1, 24);
+Balancer balancer2 = Balancer(&encoderMotor2, 40);
+
 
 // Instantiate Messenger object with the message function and the default separator (the space character)
 Messenger messenger = Messenger(); 
@@ -54,11 +60,15 @@ void setup()
   // Setting baud rate for communication with the Sabertooth device.
   sabertooth.InitializeCom(19200);
   sabertooth.SetMinVoltage(12.4);
-  
+
   previousMilliseconds = millis();
+
+  speedControllerMotor1.Initialize();
+  speedControllerMotor2.Initialize();
+
   balancer1.Initialize();
   balancer2.Initialize();
-  
+
   messenger.attach(OnMssageCompleted);
 }
 
@@ -73,7 +83,7 @@ void loop()
     // save the last time we updated
     previousMilliseconds = currentMilliseconds;
   }
-  
+
   while (Serial.available())
   {
     messenger.process(Serial.read());
@@ -114,10 +124,10 @@ void Update(unsigned long milliSecsSinceLastUpdate)
   Serial.println();
 
   //Serial.println(encoderMotor1.getPosition());
-  
+
   float motor1Torque = balancer1.CalculateTorque(tiltCalculator.AngleRad, tiltCalculator.AngularRateRadPerSec, secondsSinceLastUpdate);
   float motor2Torque = balancer1.CalculateTorque(tiltCalculator.AngleRad, tiltCalculator.AngularRateRadPerSec, secondsSinceLastUpdate);
-  
+
   sabertooth.SetSpeedMotorA(motor1Torque);
   sabertooth.SetSpeedMotorB(motor2Torque);
 }
@@ -141,11 +151,21 @@ void HandleMotor2InterruptA()
 // The Kx values are read as integers and are devided by 1000 to get floats.
 void OnMssageCompleted()
 {
+  if (messenger.checkString("SendSpeedCtrlParams"))
+  {
+    SendSpeedCtrlParams();
+  }
+
+  if (messenger.checkString("SetSpeedCtrlParams"))
+  {
+    SetSpeedCtrlParams();
+  }
+
   if (messenger.checkString("SendCoeffs"))
   {
     SendCoefficients();
   }
-    
+
   if (messenger.checkString("SetCoeffs"))
   {
     SetCoefficients(&balancer1);
@@ -153,9 +173,34 @@ void OnMssageCompleted()
   }
 }
 
+void SendSpeedCtrlParams()
+{
+  Serial.print("SpeedCtrlParams");
+  Serial.print("\t");
+  Serial.print(speedControllerMotor1.GetPParam(), 4);
+  Serial.print("\t");
+  Serial.print(speedControllerMotor1.GetIParam(), 4);
+  Serial.print("\t");
+  Serial.print(speedControllerMotor1.GetDParam(), 4);
+  Serial.println();
+}
+
+void SetSpeedCtrlParams()
+{
+  float pParam, iParam, dParam;
+  float factor = 1000;
+
+  pParam = messenger.readInt() / factor;
+  iParam = messenger.readInt() / factor;
+  dParam = messenger.readInt() / factor;
+  
+  speedControllerMotor1.SetPIDParams(pParam, iParam, dParam);
+  speedControllerMotor2.SetPIDParams(pParam, iParam, dParam);
+}
+
 void SendCoefficients()
 {
-  Serial.print("Coefficients");
+  Serial.print("Coeffs");
   Serial.print("\t");
   Serial.print(balancer1.K1, 4);
   Serial.print("\t");
@@ -171,12 +216,13 @@ void SetCoefficients(Balancer* pBalancer)
 {
   float k1, k2, k3, k4;
   float factor = 1000;
-  
+
   k1 = messenger.readInt() / factor;
   k2 = messenger.readInt() / factor;
   k3 = messenger.readInt() / factor;
   k4 = messenger.readInt() / factor;
-  
+
   pBalancer -> SetCoefficients(k1, k2, k3, k4);
 }
+
 
