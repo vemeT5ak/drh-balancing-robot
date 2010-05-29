@@ -7,7 +7,7 @@
  * for which we can't set up reliable defaults, so we need to have the user
  * set them.
  ***************************************************************************/ 
-PID::PID(double *Input, double *Output, double *Setpoint, double Kc, double TauI, double TauD)
+PID::PID(float *Input, float *Output, float *Setpoint, float Kc, float TauI, float TauD)
 {
 
   PID::ConstructorCommon(Input, Output, Setpoint, Kc, TauI, TauD);  
@@ -22,7 +22,7 @@ PID::PID(double *Input, double *Output, double *Setpoint, double Kc, double TauI
  * standard constructor, with one addition.  you can link to a Feed Forward bias,
  * which lets you implement... um.. Feed Forward Control.  good stuff.
  ***************************************************************************/
-PID::PID(double *Input, double *Output, double *Setpoint, double *FFBias, double Kc, double TauI, double TauD)
+PID::PID(float *Input, float *Output, float *Setpoint, float *FFBias, float Kc, float TauI, float TauD)
 {
 
   PID::ConstructorCommon(Input, Output, Setpoint, Kc, TauI, TauD);  
@@ -36,7 +36,7 @@ PID::PID(double *Input, double *Output, double *Setpoint, double *FFBias, double
  *    Most of what is done in the two constructors is the same.  that code
  * was put here for ease of maintenance and (minor) reduction of library size
  ****************************************************************************/
-void PID::ConstructorCommon(double *Input, double *Output, double *Setpoint, double Kc, double TauI, double TauD)
+void PID::ConstructorCommon(float *Input, float *Output, float *Setpoint, float Kc, float TauI, float TauD)
 {
   PID::SetInputLimits(0, 1023);		//default the limits to the 
   PID::SetOutputLimits(0, 255);		//full ranges of the I/O
@@ -60,7 +60,7 @@ void PID::ConstructorCommon(double *Input, double *Output, double *Setpoint, dou
  *  there's an application where the signal being fed to the controller is
  *  outside that range, well, then this function's here for you.
  **************************************************************************/
-void PID::SetInputLimits(double INMin, double INMax)
+void PID::SetInputLimits(float INMin, float INMax)
 {
 	//after verifying that mins are smaller than maxes, set the values
 	if(INMin >= INMax) return;
@@ -87,7 +87,7 @@ void PID::SetInputLimits(double INMin, double INMax)
  *  want to clamp it from 0-125.  who knows.  at any rate, that can all be done
  *  here.
  **************************************************************************/
-void PID::SetOutputLimits(double OUTMin, double OUTMax)
+void PID::SetOutputLimits(float OUTMin, float OUTMax)
 {
 	//after verifying that mins are smaller than maxes, set the values
 	if(OUTMin >= OUTMax) return;
@@ -109,7 +109,7 @@ void PID::SetOutputLimits(double OUTMin, double OUTMax)
  * it's called automatically from the constructor, but tunings can also
  * be adjusted on the fly during normal operation
  ******************************************************************************/
-void PID::SetTunings(double Kc, double TauI, double TauD)
+void PID::SetTunings(float Kc, float TauI, float TauD)
 {
 	//verify that the tunings make sense
 	if (Kc == 0.0 || TauI < 0.0 || TauD < 0.0) return;
@@ -122,8 +122,8 @@ void PID::SetTunings(double Kc, double TauI, double TauD)
 	D_Param = TauD;
 
 	//convert Reset Time into Reset Rate, and compensate for Calculation frequency
-	double tSampleInSec = ((double)tSample / 1000.0);
-	double tempTauR;
+	float tSampleInSec = ((float)tSample / 1000.0);
+	float tempTauR;
 	if (TauI == 0.0) 
 		tempTauR = 0.0;
 	else 
@@ -189,9 +189,9 @@ void PID::SetSampleTime(int NewSampleTime)
 	if (NewSampleTime > 0)
 	{ 
 		//convert the time-based tunings to reflect this change
-		taur *= ((double)NewSampleTime)/((double) tSample);
-		accError *= ((double) tSample)/((double)NewSampleTime);
-		taud *= ((double)NewSampleTime)/((double) tSample);
+		taur *= ((float)NewSampleTime)/((float) tSample);
+		accError *= ((float) tSample)/((float)NewSampleTime);
+		taud *= ((float)NewSampleTime)/((float) tSample);
 		tSample = (unsigned long)NewSampleTime;
 	}
 }
@@ -236,16 +236,16 @@ void PID::Compute()
 	{
 		
 		//pull in the input and setpoint, and scale them into percent span
-		double scaledInput = (*myInput - inMin) / inSpan;
+		float scaledInput = (*myInput - inMin) / inSpan;
 		if (scaledInput>1.0) scaledInput = 1.0;
 		else if (scaledInput<0.0) scaledInput = 0.0;
 
-		double scaledSP = (*mySetpoint - inMin) / inSpan;
+		float scaledSP = (*mySetpoint - inMin) / inSpan;
 		if (scaledSP>1.0) scaledSP = 1;
 		else if (scaledSP<0.0) scaledSP = 0;
 		
 		//compute the error
-		double err = scaledSP - scaledInput;
+		float err = scaledSP - scaledInput;
 		
 		// check and see if the output is pegged at a limit and only 
 		// integrate if it is not. (this is to prevent reset-windup)
@@ -255,7 +255,7 @@ void PID::Compute()
 		}								
 
 		// compute the current slope of the input signal
-		double dMeas = (scaledInput - lastInput);  // we'll assume that dTime (the denominator) is 1 second. 
+		float dMeas = (scaledInput - lastInput);  // we'll assume that dTime (the denominator) is 1 second. 
 							   // if it isn't, the taud term will have been adjusted 
 							   // in "SetTunings" to compensate
 
@@ -268,7 +268,7 @@ void PID::Compute()
 
 
 		// perform the PID calculation.  
-		double output = bias + kc * (err + taur * accError - taud * dMeas);
+		float output = bias + kc * (err + taur * accError - taud * dMeas);
 
 		//make sure the computed output is within output constraints
 		if (output < 0.0) output = 0.0;
@@ -307,19 +307,19 @@ int PID::GetMode()
 	else return 0;
 }
 
-double PID::GetINMin()
+float PID::GetINMin()
 {
 	return inMin;
 }
-double PID::GetINMax()
+float PID::GetINMax()
 {
 	return inMin + inSpan;
 }
-double PID::GetOUTMin()
+float PID::GetOUTMin()
 {
 	return outMin;
 }
-double PID::GetOUTMax()
+float PID::GetOUTMax()
 {
 	return outMin+outSpan;
 }
@@ -327,16 +327,16 @@ int PID::GetSampleTime()
 {
 	return tSample;
 }
-double PID::GetP_Param()
+float PID::GetP_Param()
 {
 	return P_Param;
 }
-double PID::GetI_Param()
+float PID::GetI_Param()
 {
 	return I_Param;
 }
 
-double PID::GetD_Param()
+float PID::GetD_Param()
 {
 	return D_Param;
 }
