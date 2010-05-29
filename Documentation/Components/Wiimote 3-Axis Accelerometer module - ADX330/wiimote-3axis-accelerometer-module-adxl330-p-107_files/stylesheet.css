@@ -1,0 +1,837 @@
+/**
+ * Main CSS Stylesheet
+ *
+ * @package templateSystem
+ * @copyright Copyright 2003-2005 Zen Cart Development Team
+ * @copyright Portions Copyright 2003 osCommerce
+ * @license http://www.zen-cart.com/license/2_0.txt GNU Public License V2.0
+ * @version $Id:stylesheet.css 4813 2006-10-23 02:13:53Z drbyte $
+ */
+ 
+/* Instructions to have a narrow top header (to match the width of the main site content) can be found around line 206 (search for: #headerWrapperb )
+ 
+/* I've included 4 color choices - apple green (default), blue, red, and grey. To change from green, simply 
+comment out the green section, and uncomment the color section you want the site to be. You'll also need to 
+open up includes/templates/apple_zen/css/stylesheet_header_menu.css to change the colors in the drop down menu. */
+
+/*green */
+#navMainWrapper {background:#D5E88F;}
+#logoWrapperOuter {background:#fff;}
+#navEZPagesTopWrapper {background:#D5E88F;}
+#navCatTabsWrapper {background:#BBD17E;}
+#navBreadCrumb {background:#BBD17E;}
+body {background:url(../images/site-bg.gif) 0 9em repeat-x;/*remove this background image for narrow header, unless of course you want it there (green stripe background) */}
+h3.leftBoxHeading, h3.rightBoxHeading {background:url(../images/sideboxleft.gif) no-repeat top left;}
+/* eof green */
+
+/* blue 
+#navMainWrapper {background:#6C99D9; }
+#logoWrapperOuter {background:#fff;}
+#navEZPagesTopWrapper {background:#6C99D9; }	
+#navCatTabsWrapper {background:#6084C4; }	
+#navBreadCrumb {background:#6084C4; }	
+body {background:url(../images/site-bg-blue.gif) 0 9em repeat-x; }	
+h3.leftBoxHeading, h3.rightBoxHeading {background:url(../images/sideboxleft-blue.gif) no-repeat top left; }	
+/*eof blue*/
+
+/* red 
+#navMainWrapper {background:#DC262E;}
+#logoWrapperOuter {background:#fff;}
+#navEZPagesTopWrapper {background:#DC262E;}
+#navCatTabsWrapper {background:#C62122;}
+#navBreadCrumb {background:#C62122;}
+body {background:url(../images/site-bg-red.gif) 0 9em repeat-x;}
+h3.leftBoxHeading, h3.rightBoxHeading {background:url(../images/sideboxleft-red.gif) no-repeat top left;}	
+/*eof red*/
+
+/* grey 
+#navMainWrapper {background:#D5D5D5;}	
+#logoWrapperOuter {background:#fff;}
+#navEZPagesTopWrapper {background:#D5D5D5;}
+#navCatTabsWrapper {background:#C8C8C8;}	
+#navBreadCrumb {background:#C8C8C8;}	
+body {background:url(../images/site-bg-grey.gif) 0 9em repeat-x;}	
+h3.leftBoxHeading, h3.rightBoxHeading {background:url(../images/sideboxleft-grey.gif) no-repeat top left;}	
+/*eof grey*/
+
+/* common to all colors*/
+#centerColumnOuter {background:url(../images/headerborder.gif) repeat-y;}
+#centerColumnWrapper2 {background:url(../images/content_bg.gif) repeat-y 80% 0;}
+/* eof color and background edits */
+
+
+/* If you'd like a narrow top header (to match the width of the main content, please follow the instructions below. 
+If you want the diagonal stripe background removed, you'll also need to remove that from the body tag near the top of this stylesheet. */
+#headerWrappera {
+width:100%; /* change to width:71em; for narrow header*/
+margin:0 auto;
+text-align:center;
+}
+#navMainWrapper, #navCatTabsWrapper, #navEZPagesTopWrapper {
+width:100%; /* change to width:70em; for narrow header*/
+margin:0 auto;
+text-align:center;
+}
+#navMain {
+width:70em;  /* remove width:70em; for narrow header */
+margin:0 auto;
+}
+#dropMenuWrapper {
+width:100%;
+background:#929292; /* remove background:#929292; for narrow header*/
+margin:0 auto;
+height:2.18em;
+position:absolute;
+top:0;
+left:0;
+}
+/* uncomment the section below for narrow header */
+
+/*
+#headerWrapperb {
+background:url(../images/shadowRight.png) repeat-y 100% 0;
+width:71em;
+}	
+#headerWrapperc {
+background:url(../images/shadowLeft.png) repeat-y 0 0;
+width:71em;
+}
+#dropMenuWrapperb {
+width:71em;
+margin:0 auto;
+position:relative;
+}	
+#dropMenuWrapperc {
+background:url(../images/shadowRight.png) repeat-y 100% 0;
+width:71em;
+margin:0 auto;
+position:absolute;
+left:0;
+height:2.18em;
+}
+#dropMenuWrapperd {
+background:url(../images/shadowLeft.png) repeat-y 0 0;
+width:71em;
+margin:0 auto;
+position:absolute;
+left:0;
+height:2.18em;
+}
+*/	
+/* end of changes for narrow header */
+
+* html #centerColumnWrapper, * html #centerColumnWrapperb, * html #headerWrapperb, * html #headerWrapperc, * html #dropMenuWrapperc, * html #dropMenuWrapperd, * html #bottomLine {
+background:none!important; /* Hides the transparent shadows from older versions of IE */
+}
+* html #centerColumnWrapper2b, *html #centerColumnOuter {
+border:1px solid #999;
+border-top:none;
+}
+*html #centerColumnOuter {
+border-bottom:none;
+}
+#centerColumnWrapper {
+background:url(../images/shadowRight.png) repeat-y 100% 0;
+}
+#centerColumnWrapperb {
+background:url(../images/shadowLeft.png) repeat-y 0 0;
+}
+#bottomLine {
+background:url(../images/shadowAlpha_bot.png) repeat-x top;
+}
+* {
+margin:0;
+padding:0;
+}
+body {
+font-family:tahoma, verdana, arial, helvetica, sans-serif;
+font-size:73.5%;
+color:#000;  /*main site font color*/
+}
+a img {
+border:none;
+}
+a:link {
+color:#4f4f4f; /*site links color */
+text-decoration:none;
+}
+a:visited {
+text-decoration:none;
+color:#313131;
+}
+a:hover {
+color:#000; /* color when links are hovered over */
+text-decoration:none;
+}
+ul, ol {
+text-align:left;
+padding-left:25px;
+margin-left:10px;
+margin-bottom:10px;
+}
+h1 {
+font-size:1.3em;
+}
+h2 {
+font-size:1.2em;
+}
+h3 {
+font-size:1.1em;
+}
+h4, h5, h6, h4.optionName, LEGEND, ADDRESS, .sideBoxContent, .larger {
+font-size:1em;
+}
+LEGEND {
+color:#333;
+}
+.biggerText {
+font-size:1.1em;
+}
+h1, h2, h3, h4, h5, h6 {
+margin:.3em 0;
+}
+CODE {
+font-family:tahoma, arial, verdana, helvetica, sans-serif;
+font-size:1em;
+}
+FORM, SELECT {
+display:inline;
+font-size:1em;
+margin:.5em;
+}
+#categoriesselectContent select {
+font-size:.9em
+}
+option {
+padding-right:.5em;
+}
+INPUT {
+margin:.3em .5em;
+}
+html>/**/body input[type=checkbox], html>/**/body input[type=radio] {
+float:left;
+clear:both;
+}
+html>/**/body .checkboxLabel, html>/**/body .radioButtonLabel {
+margin:0 .2em .5em 0;
+float:left;
+}
+.ratingRow input[type=radio] {
+float:none;
+margin:0 .5em;
+}
+TEXTAREA {
+margin:auto;
+display:block;
+width:97%;
+}
+input:focus, select:focus, textarea:focus {
+background:#F3F9E1;
+}
+FIELDSET {
+padding:.5em;
+margin:.5em 0;
+border:1px solid #ccc;
+}
+LEGEND {
+font-weight:700;
+padding:.3em;
+}
+h4.optionName {
+line-height:1.5em;
+padding-right:1em;
+}
+.centerBoxContents, .specialsListBoxContents, .categoryListBoxContents, .centerBoxContentsAlsoPurch, .attribImg {
+float:left;
+}
+#logo {
+float:left;  /* to center your logo, uncomment the "text-align:center;margin:0 auto" below. Also remove "float:left" *//* text-align:center;
+margin:0 auto; */
+}
+/* #logo {
+width:19.1em;  /* To prevent the logo from resizing, simply delete or comment out this section */
+}
+*/ change
+#logo img {
+width:100%;
+}
+LABEL.inputLabel {
+width:85%;
+float:left;
+margin:.3em 0;
+}
+LABEL.inputLabelPayment {
+width:15em;
+float:left;
+padding:.5em;
+}
+#checkoutpaymentBody input[type=radio] {
+margin:15px 0
+}
+#checkoutpaymentBody .radioButtonLabel {
+padding:10px
+}
+LABEL.selectLabel, LABEL.switchedLabel, LABEL.uploadsLabel {
+width:12em;
+float:left;
+}
+ADDRESS {
+padding-right:40px;
+}
+.clearBoth {
+clear:both;
+height:0;
+font-size:0;
+line-height:0;
+margin:0;
+padding:0;
+}
+.clearfix:after {
+content: ".";
+display: block;
+height: 0;
+clear: both;
+visibility: hidden;
+}
+.clearfix {
+display: inline-block;
+}
+/* Hides from IE-mac \*/
+* html .clearfix {
+height: 1%;
+}
+.clearfix {
+display: block;
+}
+/* End hide from IE-mac */
+
+HR {
+height:1px;
+margin:.5em 0;
+border:none;
+border-bottom:1px solid #9a9a9a;
+}
+/*warnings, errors, messages*/
+.messageStackWarning, .messageStackError, .messageStackSuccess, .messageStackCaution {
+padding:0.2em;
+}
+.messageStackWarning, .messageStackError {
+background:#900;
+color:#fff;
+}
+.messageStackSuccess {
+background:#929292;
+}
+.messageStackCaution {
+background:#ff9;
+}
+/*wrappers - page or section containers*/
+#mainWrapper {
+text-align:center;
+vertical-align:top;
+position:relative;
+padding-bottom:25px;
+}
+/* Start hide from IE-Mac \*/
+* html #mainWrapper {
+height: 1%;
+}
+/* End Hide from IE-Mac */
+#headerWrapper {
+width:100%;
+text-align:center;
+margin:0 auto;
+background:#fff;
+}
+#logoWrapperOuter {
+width:70em;
+margin:0 auto;
+overflow:hidden;
+}
+#tagline {
+font-size:1.3em;
+text-align:center;
+padding-top:15px;
+}
+#navCatTabs, #navEZPagesTop {
+font-weight:700;
+margin:0 auto;
+padding:.5em 0;
+}
+#sendSpendWrapper {
+border:1px solid #cacaca;
+float:right;
+margin:0 0 1em 1em;
+}
+.floatingBox, #accountLinksWrapper, #sendSpendWrapper, #checkoutShipto, #checkoutBillto, #navEZPagesTOCWrapper {
+width:47%;
+}
+.wrapperAttribsOptions {
+line-height:2em;
+padding-bottom:1em;
+}
+/*navigation*/
+
+.navPrevCounter {
+font-size:.9em;
+}
+.navNextPrevList {
+display:inline;
+white-space:nowrap;
+padding:0 1em;
+list-style-type:none;
+position:relative;
+}
+#bottomLineWrapper {
+width:100%;
+margin:0 auto;
+margin-top:-6px;
+position:relative;
+top:2.18em;
+}
+#bottomLine {
+margin:0 auto;
+text-align:center;
+width:70.3em;
+padding-top:1em;
+}
+#navSuppWrapper {
+width:100%;
+margin:0 auto;
+margin-top:-6px;
+float:left;
+position:relative;
+top:2.18em;
+}
+#navSupp {
+margin:0 auto;
+text-align:center;
+width:70.3em;
+padding-top:1em;
+}
+#navMainLinks {
+float:left;
+position:relative;
+list-style-type:none;
+text-align:left;
+font-size:1.2em;
+}
+#navEZPagesTOC ul, #navCatTabs ul, #navSupp ul, #bottomLine ul, #navMainLinks ul {
+list-style-type:none;
+text-align:center;
+line-height:1.4em;
+padding: 0;
+margin:0;
+}
+#navSupp li, #navCatTabs li, #navMainLinks li, #bottomLine li {
+display:inline;
+padding:0 .5em;
+}
+#navSupp ul li a, #navCatTabs ul li a, #bottomLine ul li a {
+text-decoration:none;
+margin:0;
+white-space:nowrap;
+display:inline;
+font-weight:700;
+width:0;
+}
+#navEZPagesTOCWrapper {
+font-weight:700;
+float:right;
+height:1%;
+border:1px solid #000;
+}
+#navEZPagesTOC ul li {
+white-space:nowrap;
+}
+#navEZPagesTOC ul li a {
+padding:0 .5em;
+}
+#navCategoryIcon, .buttonRow, #indexProductListCatDescription {
+margin:.5em;
+}
+#navMainSearch {
+margin:0 auto;
+text-align:right;
+padding:2px 5px 1px;
+}
+#navMainSearch input {
+margin:0 auto;
+text-align:right;
+padding:2px 5px;
+}
+#navMainSearch input[type=text] {
+margin: 2px 0 0 1em;
+}
+#navMainSearch input.topSearch {
+margin: 0 0 5px 2px; 
+vertical-align: bottom;
+}
+#navBreadCrumb {
+text-align:left;
+padding:.5em;
+font-size:.95em
+}
+#navBreadCrumb a {
+padding:.5em 1em;
+}
+#navColumnTwo, #navColumnOne {
+float:left;
+position:relative;
+width:20%;
+padding-bottom:20px;
+}
+/*The main content classes*/
+#contentMainWrapperOuter {
+float:left;
+width:100%;
+}
+#contentMainWrapper {
+width:71em;
+margin:0 auto;
+text-align:center;
+position:relative;
+top:2.18em;
+}
+#centerColumnWrapper, #centerColumnWrapperb {
+width:71em;
+}
+#centerColumnOuter {
+margin:0 .5em;
+width:70em;
+height:15px;
+}
+#centerColumnWrapper2 {
+margin:0 .5em;
+width:70em;
+}
+#centerColumnWrapper2b {
+margin:0 auto;
+overflow:hidden;
+width:70em;
+}
+.centerColumn {
+width:75%;
+float:left;
+margin:0 2% 2% 3%;
+text-align:left;
+line-height:1.6em;
+display:inline; /* fixes IE Bug in IE6 and earlier - do not remove */
+}
+#contentColumnMain, #navColumnOne, #navColumnTwo, .centerBoxContents, .specialsListBoxContents, .categoryListBoxContents, .additionalImages, .centerBoxContentsSpecials, .centerBoxContentsAlsoPurch, .centerBoxContentsFeatured, .centerBoxContentsNew, .alert {
+vertical-align:top;
+}
+#productDescription, .shippingEstimatorWrapper {
+padding:.5em;
+}
+.important {
+font-weight:700;
+}
+.gvBal {
+float:right;
+}
+#bannerOne, #bannerTwo, #bannerThree, #bannerFour, #bannerFive, #bannerSix {
+padding:.8em;
+}
+.smallText, #siteinfoLegal, #siteinfoCredits, #siteinfoStatus, #siteinfoIP {
+font-size:.9em;
+}
+#siteinfoLegal, #siteinfoIP, #bannerFive, #bannerSix, .parseTime {
+clear:both;
+position:relative;
+top:2.18em;
+}
+#cartAdd {
+float:right;
+text-align:center;
+margin:1em;
+border:1px solid #000;
+padding:1em;
+}
+.tableHeading TH {
+border-bottom:1px solid #ccc;
+}
+.tableHeading, #cartSubTotal {
+background:#e9e9e9;
+}
+#cartSubTotal {
+border-top:1px solid #ccc;
+font-weight:700;
+text-align:right;
+line-height:2.2em;
+padding-right:2.5em;
+}
+.tableRow, .tableHeading, #cartSubTotal {
+height:2.2em;
+}
+.cartProductDisplay, .cartUnitDisplay, .cartTotalDisplay, .cartRemoveItemDisplay, .cartQuantityUpdate, .cartQuantity, #cartInstructionsDisplay, .cartTotalsDisplay {
+padding:.5em 0 0;
+}
+#cartProdTitle {
+text-align:center
+}
+.cartUnitDisplay, .cartTotalDisplay {
+text-align:center;
+padding-right:.2em;
+}
+.cartQuantityUpdate input {
+margin:0;
+padding:0;
+}
+.cartRemoveItemDisplay input[type=checkbox] {
+float:none;
+margin-bottom:1em;
+}
+#scUpdateQuantity {
+width:1.8em;
+}
+#scProductsHeading {
+padding-left:2em;
+}
+.cartQuantity {
+width:4em;
+}
+.cartNewItem {
+position:relative;  /*do not remove-fixes stupid IEbug*/
+}
+.cartOldItem {
+position:relative;   /*do not remove-fixes stupid IEbug*/
+}
+.cartBoxTotal {
+text-align:right;
+font-weight:700;
+margin:.2em .5em;
+}
+.cartRemoveItemDisplay {
+width:5em;
+}
+.cartAttribsList {
+margin-left:1em;
+}
+#mediaManager {
+width:50%;
+margin:.2em;
+padding:.5em;
+}
+.mediaTitle {
+float: left;
+}
+.mediaTypeLink {
+float: right;
+}
+.normalprice, .productSpecialPriceSale {
+text-decoration:line-through;
+}
+.productSpecialPrice, .productSalePrice, .productSpecialPriceSale, .productPriceDiscount, .alert {
+color:#900;
+}
+.orderHistList {
+margin:1em;
+padding:.2em 0;
+}
+#ezPageBoxList li {
+margin:0;
+padding:.2em 0;
+}
+#cartBoxEmpty, #cartBoxVoucherBalance {
+font-weight:700;
+}
+.totalBox {
+width:5.5em;
+text-align:right;
+padding:.2em;
+}
+.lineTitle, .amount {
+text-align:right;
+padding:.2em;
+}
+.amount {
+width:5.5em;
+}
+#productMainImage, #reviewsInfoDefaultProductImage, #productReviewsDefaultProductImage, #reviewWriteMainImage {
+margin:.5em 1em 1em 0;
+}
+#cartImage {
+margin:.5em 1em;
+}
+.attribImg {
+width:20%;
+margin:.3em 0;
+}
+.centerBoxContents, .specialsListBoxContents, .categoryListBoxContents, .additionalImages, .centerBoxContentsSpecials, .centerBoxContentsAlsoPurch, .centerBoxContentsFeatured, .centerBoxContentsNew {
+margin:1em 0;
+}
+h3.leftBoxHeading, h3.rightBoxHeading {
+font-size:1.2em;
+color:#424242;
+text-transform:uppercase;
+font-weight:400;
+height:1.5em;
+padding:.2em 0 0;
+padding-left:15px;
+}
+.centerBoxHeading {
+margin:0;
+background:#eee;
+padding:.3em 0;
+border-top:2px solid #4f4f4f;
+border-bottom:2px solid #4f4f4f;
+}
+.leftBoxHeading, .rightBoxHeading {
+margin:0;
+border-top:2px solid #fff;
+border-bottom:2px solid #fff;
+}
+.sideBoxContent {
+font-size:1.1em;
+padding:5px 0;
+}
+.sideBoxContent ul {
+text-align:left;
+list-style-type:none;
+padding:0 0 0 15px;
+margin:0;
+}
+.sideBoxContent li {
+padding:.2em 0;
+}
+.sideBoxContent select {
+margin:0;
+padding:0;
+width:150px;
+}
+#categoriesContent {
+text-align:left;
+padding-left:15px;
+}
+.centeredContent, TH, #cartEmptyText, #cartBoxGVButton, #cartBoxEmpty, #cartBoxVoucherBalance, #navCatTabsWrapper, #navEZPageNextPrev, #bannerOne, #bannerTwo, #bannerThree, #bannerFour, #bannerFive, #bannerSix, #siteinfoLegal, #siteinfoCredits, #siteinfoStatus, #siteinfoIP, .center, .cartRemoveItemDisplay, .cartQuantityUpdate, .cartQuantity, .cartTotalsDisplay, #cartBoxGVBalance, .leftBoxHeading, .centerBoxHeading, .rightBoxHeading, .productListing-data, .accountQuantityDisplay, .ratingRow, LABEL#textAreaReviews, #productMainImage, #reviewsInfoDefaultProductImage, #productReviewsDefaultProductImage, #reviewWriteMainImage, .centerBoxContents, .specialsListBoxContents, .categoryListBoxContents, .additionalImages, .centerBoxContentsSpecials, .centerBoxContentsAlsoPurch, .centerBoxContentsFeatured, .centerBoxContentsNew, .gvBal, .attribImg, .parseTime {
+text-align:center;
+}
+.productListing-data {
+border-bottom:1px solid #000;
+margin:15px;
+padding:15px;
+}
+.productListing-heading {
+border-bottom:1px solid #000;
+padding:5px;
+}
+.productListing-heading a {
+border:none;
+}
+#upProductsHeading {
+text-align:left;
+}
+#upDateHeading {
+text-align:right;
+}
+/*misc*/
+.back {
+float:left;
+}
+.forward, #shoppingCartDefault #PPECbutton {
+float:right;
+}
+.bold {
+font-weight:700;
+}
+.rowOdd {
+background:#E8E8E8;
+height:1.5em;
+vertical-align:top;
+}
+.rowEven {
+background:#F0F0F0;
+height:1.5em;
+vertical-align:top;
+}
+.hiddenField {
+display:none;
+}
+.visibleField {
+display:inline;
+}
+#accountLinksWrapper li {
+padding:.5em 0;
+display:block;
+list-style:none;
+}
+.accountTotalDisplay, .accountTaxDisplay {
+width:20%;
+text-align:right;
+}
+.accountQuantityDisplay {
+width:10%;
+vertical-align:top
+}
+TR.tableHeading {
+background:#cacaca;
+height:2em;
+}
+#siteMapList {
+width:90%;
+float:right;
+}
+.ratingRow {
+margin:1em 0 1.5em;
+}
+LABEL#textAreaReviews {
+font-weight:400;
+margin:1em 0;
+}
+#popupShippingEstimator, #popupSearchHelp, #popupAdditionalImage, #popupImage, #popupCVVHelp, #popupCouponHelp, #popupAtrribsQuantityPricesHelp, #infoShoppingCart {
+background:#fff;
+}
+.information {
+padding:10px 3px;
+line-height:150%;
+}
+#shoppingcartBody #shippingEstimatorContent {
+clear:both;
+}
+.seDisplayedAddressLabel {
+background-color:#85C285;
+text-align:center;
+}
+.seDisplayedAddressInfo {
+text-transform:uppercase;
+text-align:center;
+font-weight:400;
+}
+#seShipTo {
+padding:.2em;
+}
+#descSubLink {
+padding-left:.7em;
+color:#900;
+}
+.smallProductImage {
+padding:1em;
+}
+#sorter, #indexProductList select {
+float:right;
+text-align:right;
+}
+#indexProductList .inputLabel {
+width:100%;
+text-align:right;
+}
+#sorter select, #indexProductList select {
+margin:0 .1em;
+}
+
+/* ---- Article Sidebox ---- */
+#staticRSSText {
+  font-weight: bold;
+}
+.staticRSSArticles {
+  text-align: left;
+  margin: 5px 0 0 0;
+  list-style: none;
+}
+.staticRSSArticle {
+  margin: 0;
+  /* remove/comment out the following line if using a defined delimiter */
+  background: url("../images/icons/bullet-point.gif") 0px 8px no-repeat;
+  padding: 0px 0px 2px 8px; 
+}
