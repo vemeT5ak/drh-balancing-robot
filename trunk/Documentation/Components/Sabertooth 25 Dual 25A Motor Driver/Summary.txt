@@ -1,0 +1,33 @@
+The Sabertooth 2X25 is one of the most versatile, efficient and easy to use dual motor drivers on the market. It is suitable for high powered robots - up to 100lbs in combat or 300lbs for general purpose robotics.
+
+Out of the box, the Sabertooth can supply two DC brushed motors with up to 25A each. Peak currents of 50A per channel are achievable for a few seconds.
+
+Overcurrent and thermal protection means you'll never have to worry about killing the driver with accidental stalls or by hooking up too big a motor.
+
+Sabertooth allows you to control two motors with: analog voltage, radio control, serial and packetized serial. You can build many different robots of increasing complexity for years to come with a Sabertooth. Sabertooth has independent and speed+direction operating modes, making it the ideal driver for differential drive (tank style) robots and more.
+
+The operating mode is set with the onboard DIP switches so there are no jumpers to lose. Sabertooth features screw terminal connectors - making it possible for you to build a robot without even soldering.
+
+Sabertooth is the first synchronous regenerative motor driver in its class. The regenerative topology means that your batteries get recharged whenever you command your robot to slow down or reverse. Sabertooth also allows you to make very fast stops and reverses - giving your robot a quick and nimble edge.
+
+Sabertooth has a built in 5V BEC that can provide power to a microcontroller or R/C receiver. The lithium cutoff mode allows Sabertooth to operate safely with lithium ion and lithium polymer battery packs - the highest energy density batteries available.
+
+Sabertooth's transistors are switched at ultrasonic speeds (32kHz) for silent operation.
+
+Sabertooth 2X25 uses 1.3 milliohm MOSFETs in its bridge. Going by our competitor's ridiculous rating schemes this would make it a dual 190A motor driver!
+
+Use of our motor drivers with cheap AC adapters is not recommended. Use a battery or at least put a battery in parallel with a DC supply.
+
+25A continuous, 50A peak per channel.
+
+Input voltage 6-24V, 30V absolute max.
+
+Synchronous regenerative drive
+Ultra-sonic switching frequency
+Thermal and overcurrent protection
+Lithium protection mode
+
+Input modes: Analog, R/C, simplified serial, packetized serial
+
+Size: 2.6" x 3.2" x .8"
+65 x 80 x 20 mm
