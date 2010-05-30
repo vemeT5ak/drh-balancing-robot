@@ -7,6 +7,8 @@ Created on May 15, 2010
 from Model.MainModel import MainModel
 import wx
 from MainWindow import MainWindow
+import matplotlib
+#matplotlib.use('WXAgg')
 
 
 app = wx.App(False)

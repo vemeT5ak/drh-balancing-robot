@@ -9,17 +9,12 @@ Created on May 5, 2010
 
 import wx
 import wx.lib.sized_controls as sc
-import matplotlib
-matplotlib.use('WXAgg')
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
-import matplotlib.dates as mpldates 
-import pylab
 import os
 
-from datetime import datetime, timedelta
-from Support.TimeStampedData import TimeStampedData
-from Support.MaxAgeBuffer import MaxAgeBuffer
+from datetime import datetime
+from TiltPlotPanel import TiltPlotPanel
+from SpeedPlotPanel import SpeedPlotPanel
+from SpeedControllerSettingsDialog import SpeedControllerSettingsDialog
 from CoefficientsDialog import CoefficientsDialog
 
 class MainWindow(sc.SizedFrame):
@@ -29,18 +24,13 @@ class MainWindow(sc.SizedFrame):
         self.dirname=''
         
         #self.datagen = DataGen()
+        self._MainModel = mainModel
         self._MaxAgeBuffer = mainModel.MaxAgeBuffer
-
-        self._TimeStamps = []
-        self._Values1 = []
-        self._Values2 = []
-        
-        self._ExtractPlotData()
 
 
         # A "-1" in the size parameter instructs wxWidgets to use the default size.
         # In this case, we select 200px width and the default height.
-        sc.SizedFrame.__init__(self, parent, title=MainWindow._Title, size=(800,400))
+        sc.SizedFrame.__init__(self, parent, title=MainWindow._Title, size=(800,800))
         #self.CreateStatusBar() # A Statusbar in the bottom of the window
 
         # Always use self.GetContentsPane() - this ensures that your dialog
@@ -49,7 +39,13 @@ class MainWindow(sc.SizedFrame):
         # should be added to this _Panel, NOT to self.
         _Panel = self.GetContentsPane()
         
-        self._InitializePlot(_Panel)
+        self._TiltPlotPanel = TiltPlotPanel(_Panel, self._MaxAgeBuffer)
+        self._TiltPlotPanel.SetSizerProps(expand=True, proportion=1)
+
+        self._SpeedPlotPanel = SpeedPlotPanel(_Panel, self._MaxAgeBuffer)
+        self._SpeedPlotPanel.SetSizerProps(expand=True, proportion=1)
+
+        #self._InitializePlot(_Panel)
 
 #        self._Button1 = wx.Button(_Panel, label='Button 1')      
 #        self._Button2 = wx.Button(_Panel, label='Button 2')
@@ -64,62 +60,20 @@ class MainWindow(sc.SizedFrame):
 #        self._Box.SetSizerProps(expand=True, proportion=1)
 
         self._CreateMenu()
+        
+        self.Bind(wx.EVT_CLOSE, self._OnClose)
 
         
         self._RedrawTimer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self._OnRedrawTimerFired, self._RedrawTimer)        
         self._RedrawTimer.Start(50)
 
-    def _InitializePlot(self, panel):
-        self._DPI = 100
-        self._Figure = Figure(dpi=self._DPI)
-
-        self._Plot = self._Figure.add_subplot(111)
-        self._Plot.set_axis_bgcolor('black')
-        self._Plot.set_title('Tilt Angle', size=12)
-        self._Plot.grid(True, color='gray')
-        
-        pylab.setp(self._Plot.get_xticklabels(), fontsize=8)
-        pylab.setp(self._Plot.get_yticklabels(), fontsize=8)
-        
-        formatter = mpldates.DateFormatter('%M:%S') 
-        self._Plot.xaxis.set_major_formatter(formatter)
-
-
-        # plot the data as a line series, and save the reference 
-        # to the plotted line series
-        #
-        self._Traces = []
-        trace = self._Plot.plot(
-            self._TimeStamps,
-            self._Values1,
-            linewidth=1,
-            color=(1, 0, 0),
-            )[0]
-        self._Traces.append(trace)
-
-        trace = self._Plot.plot(
-            self._TimeStamps,
-            self._Values2,
-            linewidth=1,
-            color=(0, 1, 0),
-            )[0]
-            
-        self._Traces.append(trace)
-        
-        legend = self._Plot.legend(('Acceleration', 'Kalman'), shadow=False, labelspacing=0.001)
-        for text in legend.get_texts():
-            text.set_fontsize('x-small')    # the legend text fontsize
-
-
-        self._FigureCanvas = FigureCanvas(panel, -1, self._Figure)
-        self._FigureCanvas.SetSizerProps(expand=True, proportion=1)
-
     def _CreateMenu(self):
         # Setting up the menu.
         _FileMenu= wx.Menu()
         _MenuSave = _FileMenu.Append(wx.ID_SAVE, "&Save plot\tCtrl-S", "Save plot to file")
         #menuOpen = _FileMenu.Append(wx.ID_OPEN, "&Open"," Open a file to edit")
+        _MenuEditSpeedController = _FileMenu.Append(wx.ID_ANY, "Speed controller", "Edit speed controller settings")
         _MenuEditCoefficients = _FileMenu.Append(wx.ID_PROPERTIES, "Coefficients", "Edit Coefficients")
         _MenuAbout= _FileMenu.Append(wx.ID_ABOUT, "&About"," Information about this program")
         _MenuExit = _FileMenu.Append(wx.ID_EXIT,"E&xit"," Terminate the program")
@@ -131,6 +85,7 @@ class MainWindow(sc.SizedFrame):
         # Events.
         #self.Bind(wx.EVT_MENU, self.OnOpen, menuOpen)
         self.Bind(wx.EVT_MENU, self._OnSavePlot, _MenuSave)
+        self.Bind(wx.EVT_MENU, self._OnEditSpeedController, _MenuEditSpeedController)
         self.Bind(wx.EVT_MENU, self._OnEditCoefficients, _MenuEditCoefficients)
         self.Bind(wx.EVT_MENU, self._OnExit, _MenuExit)
         self.Bind(wx.EVT_MENU, self._OnAbout, _MenuAbout)
@@ -138,60 +93,25 @@ class MainWindow(sc.SizedFrame):
         self.SetMenuBar(_MenuBar)  # Adding the MenuBar to the Frame content.
    
     def _OnRedrawTimerFired(self, event):
-        self._ExtractPlotData()
-        self._DrawPlot()
-
-    def _ExtractPlotData(self):
-
-        del self._TimeStamps[:]
-        del self._Values1[:]
-        del self._Values2[:]
-
-        for timeStampedValue in self._MaxAgeBuffer:
-            self._TimeStamps.append(timeStampedValue.TimeStamp)
-            self._Values1.append(timeStampedValue.Value[0])
-            self._Values2.append(timeStampedValue.Value[1])       
-
-    def _DrawPlot(self):
-        """ Redraws the plot
-        """
-        
-        #print 'redrawing'
-        #print self._TimeStamps
-        #print self._Values1
-        
         now = datetime.now()
-        self._Plot.set_xbound(lower=now - self._MaxAgeBuffer.MaximumAge, upper=now)
-        self._Plot.set_ybound(lower=-10.0, upper=10.0)
-
-
-        self._Traces[0].set_xdata(self._TimeStamps)
-        self._Traces[0].set_ydata(self._Values1)
-
-        self._Traces[1].set_xdata(self._TimeStamps)
-        self._Traces[1].set_ydata(self._Values2)
-
-#        self.plot_data.set_xdata(np.arange(len(self.data)))
-#        self.plot_data.set_ydata(np.array(self.data))
-        
-        if len(self._TimeStamps) > 0:
-            self._FigureCanvas.draw()
+        self._TiltPlotPanel.Refresh(self._MaxAgeBuffer, now)
+        self._SpeedPlotPanel.Refresh(self._MaxAgeBuffer, now)
        
     def _Onclick(self, evt):
         text = 'You clicked on "%s" at %s\n' % (evt.EventObject.GetLabel())
         
         self._TextControl.AppendText(text)
 
-    def _OnAbout(self,e):
+    def _OnAbout(self, e):
         # Create a message dialog box
         dlg = wx.MessageDialog(self, "Controller for the\nBalancing Robot\n\nBy Dr. Rainer Hessmer", "About " + self.Title, wx.OK)
         dlg.ShowModal() # Shows it
         dlg.Destroy() # finally destroy it when finished.
 
-    def _OnEditCoefficients(self,e):
+    def _OnEditSpeedController(self, e):
         # Opens the coefficients dialog
-        dlg = CoefficientsDialog(self, -1)
-        dlg.CenterOnScreen()
+        dlg = SpeedControllerSettingsDialog(self, self._MainModel)
+        dlg.CenterOnParent()
 
         # this does not return until the dialog is closed.
         val = dlg.ShowModal()
@@ -205,10 +125,33 @@ class MainWindow(sc.SizedFrame):
 
         dlg.Destroy()
 
-    def _OnExit(self,e):
-        self.Close(True)  # Close the frame.
+    def _OnEditCoefficients(self, e):
+        # Opens the coefficients dialog
+        dlg = CoefficientsDialog(self, -1)
+        dlg.CenterOnParent()
 
-#    def _OnOpen(self,e):
+        # this does not return until the dialog is closed.
+        val = dlg.ShowModal()
+    
+        if val == wx.ID_OK:
+            pass
+            #self.log.WriteText("You pressed OK\n")
+        else:
+            #self.log.WriteText("You pressed Cancel\n")
+            pass
+
+        dlg.Destroy()
+
+    def _OnExit(self, e):
+        self.Close(True)  # Close the frame.
+        
+    def _OnClose(self, e):
+        self._RedrawTimer.Stop()
+        self.Destroy() # I don't know why this is necessary. Without the app does not close down.
+
+        #self.Close(True)  # Close the frame.
+
+#    def _OnOpen(self, e):
 #        """ Open a file"""
 #        dlg = wx.FileDialog(self, "Choose a file", self.dirname, "", "*.*", wx.OPEN)
 ##        if dlg.ShowModal() == wx.ID_OK:

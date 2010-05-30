@@ -46,8 +46,15 @@ class DataAdapter(object):
         if (lineParts[0]=='Coeffs'):
             coefficients = list(float(linePart) / 1000 for linePart in lineParts)
             self._MainModel.OnCoefficientsReceived(coefficients)
+        elif (lineParts[0]=='SpeedCtrlParams'):
+            pass
         else:
-            data = tuple(float(linePart) * _RadToDeg for linePart in lineParts)
+            data = tuple(float(lineParts[0]) * _RadToDeg, # raw tilt angle [degree] from accelerometer
+                         float(lineParts[1]) * _RadToDeg, # tilt angle [degree] from sensor fusion (accelerometer & gyroscope)
+                         float(lineParts[2]) * _RadToDeg, # angular rate [degree / sec]
+                         float(lineParts[3]), # current speed motor 1 [m/sec]
+                         float(lineParts[4]), # current speed motor 2 [m/sec]
+                         )
             timeStampedData = TimeStampedData(data)
             
             self._MaxAgeBuffer.append(timeStampedData)
@@ -56,7 +63,7 @@ class DataAdapter(object):
         
     def _AddDefaultValuesIfEmpty(self):
         if len(self._MaxAgeBuffer) == 0:
-            timeStampedData = TimeStampedData((0,0))
+            timeStampedData = TimeStampedData((0,0,0,0,0))
             self._MaxAgeBuffer.append(timeStampedData)
         
         # next we wait a tenth of the maximum age of the buffer before we check again
@@ -73,6 +80,15 @@ class DataAdapter(object):
         Sends the specified controller coefficients (a tuple of four floats) to the arduino board.
         '''
         message = 'SetCoeffs %d %d %d %d\n' % coefficients
+        self._DataGateway.Write(message)
+        
+    def SendSpeedControllerParams(self, floatParams):
+        '''
+        Sends the provided PID loop parameters provided as a tuple of three floats to the arduino board.
+        '''
+        # the receiver code only understands integers
+        integerParams = tuple(int(floatParam * 1000) for floatParam in floatParams)
+        message = 'SetSpeedCtrlParams %d %d %d\n' % integerParams
         self._DataGateway.Write(message)
 
     def Stop(self):

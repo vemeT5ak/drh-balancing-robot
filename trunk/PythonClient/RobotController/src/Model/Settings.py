@@ -15,6 +15,7 @@ class Settings(object):
 
     _ConfigFileName = 'BalancingBotConfig.txt'
     _SectionGeneral = 'General'
+    _SectionSpeedControl = 'SpeedControl'
     _SectionCoeffs = 'Coeffs'
 
     def __init__(self, mainModel):
@@ -32,29 +33,39 @@ class Settings(object):
         configParser.read(self._ConfigFilePath)
         
         self._MainModel.SerialPort = self.GetInt(configParser, self._SectionGeneral, 'Port', self._MainModel.SerialPort)
+        
+        speedControlParams = self._MainModel.SpeedControlParams
+        speedControlParams['P'] = self.GetFloat(configParser, self._SectionSpeedControl, 'P', speedControlParams['P'])
+        speedControlParams['I'] = self.GetFloat(configParser, self._SectionSpeedControl, 'I', speedControlParams['I'])
+        speedControlParams['D'] = self.GetFloat(configParser, self._SectionSpeedControl, 'D', speedControlParams['D'])
+        
         coefficients = self._MainModel.Coefficients
-        coefficients[0] = self.GetInt(configParser, self._SectionCoeffs, 'K1', coefficients[0])
-        coefficients[1] = self.GetInt(configParser, self._SectionCoeffs, 'K1', coefficients[1])
-        coefficients[2] = self.GetInt(configParser, self._SectionCoeffs, 'K1', coefficients[2])
-        coefficients[3] = self.GetInt(configParser, self._SectionCoeffs, 'K1', coefficients[3])
+        coefficients['K1'] = self.GetInt(configParser, self._SectionCoeffs, 'K1', coefficients['K1'])
+        coefficients['K2'] = self.GetInt(configParser, self._SectionCoeffs, 'K2', coefficients['K2'])
+        coefficients['K3'] = self.GetInt(configParser, self._SectionCoeffs, 'K3', coefficients['K3'])
+        coefficients['K4'] = self.GetInt(configParser, self._SectionCoeffs, 'K4', coefficients['K4'])
     
     def Save(self):
-        configFile = open(self._ConfigFilePath,'w')
-
         configParser = ConfigParser.RawConfigParser()
 
         configParser.add_section(self._SectionGeneral)
         configParser.set(self._SectionGeneral, 'Port', self._MainModel.SerialPort)
 
+        configParser.add_section(self._SectionSpeedControl)
+        speedControlParams = self._MainModel.SpeedControlParams
+        configParser.set(self._SectionSpeedControl, 'P', speedControlParams['P'])
+        configParser.set(self._SectionSpeedControl, 'I', speedControlParams['I'])
+        configParser.set(self._SectionSpeedControl, 'D', speedControlParams['D'])
+
         configParser.add_section(self._SectionCoeffs)
         coefficients = self._MainModel.Coefficients
-        configParser.set(self._SectionCoeffs, 'K1', coefficients[0])
-        configParser.set(self._SectionCoeffs, 'K2', coefficients[1])
-        configParser.set(self._SectionCoeffs, 'K3', coefficients[2])
-        configParser.set(self._SectionCoeffs, 'K4', coefficients[3])
+        configParser.set(self._SectionCoeffs, 'K1', coefficients['K1'])
+        configParser.set(self._SectionCoeffs, 'K2', coefficients['K2'])
+        configParser.set(self._SectionCoeffs, 'K3', coefficients['K3'])
+        configParser.set(self._SectionCoeffs, 'K4', coefficients['K4'])
 
-        configParser.write(configFile)
-        configParser.close()
+        with open(self._ConfigFilePath,'w') as configFile:
+            configParser.write(configFile)
 
     def GetFloat(self, configParser, section, option, defaultValue=0.0):
         try:
