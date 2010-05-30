@@ -75,7 +75,7 @@ void PID::SetInputLimits(float INMin, float INMax)
 	else if (lastInput < 0) lastInput = 0;
 	
 	
-        inMin = INMin;
+	inMin = INMin;
 	inSpan = INMax - INMin;
 }
 
