@@ -17,19 +17,30 @@ class SpeedControllerSettingsDialog(sc.SizedDialog):
         _Pane.SetSizerType("form")
         
         # row 1
-        wx.StaticText(_Pane, -1, "P:")
+        wx.StaticText(_Pane, -1, 'P:')
         self._PTextControl = wx.TextCtrl(_Pane, -1, str(speedControlParams['P']))
         self._PTextControl.SetSizerProps(expand=True)
         
         # row 2
-        wx.StaticText(_Pane, -1, "I:")
+        wx.StaticText(_Pane, -1, 'I:')
         self._ITextControl = wx.TextCtrl(_Pane, -1, str(speedControlParams['I']))
         self._ITextControl.SetSizerProps(expand=True)
         
         # row 3
-        wx.StaticText(_Pane, -1, "D:")
+        wx.StaticText(_Pane, -1, 'D:')
         self._DTextControl = wx.TextCtrl(_Pane, -1, str(speedControlParams['D']))
         self._DTextControl.SetSizerProps(expand=True)
+
+        wx.StaticText(_Pane, -1, '')
+
+        self._ApplyPIDButton = wx.Button(_Pane, -1, 'Set PID')
+        self._ApplyPIDButton.Bind(wx.EVT_BUTTON, self._OnApplyPID)
+
+        self._SpeedTextControl = wx.TextCtrl(_Pane, -1, '0.0')
+        self._SpeedTextControl.SetSizerProps(expand=True)
+
+        self._ApplySpeedButton = wx.Button(_Pane, -1, 'Set Speed')
+        self._ApplySpeedButton.Bind(wx.EVT_BUTTON, self._OnApplySpeed)
         
         # add dialog buttons
         #self.SetButtonSizer(self.CreateStdDialogButtonSizer(wx.OK | wx.CANCEL))
@@ -38,15 +49,10 @@ class SpeedControllerSettingsDialog(sc.SizedDialog):
         # since we want to use a custom button layout, we won't use the 
         # CreateStdDialogBtnSizer here, we'll just create our own panel with
         # a horizontal layout and add the buttons to that.
-        buttonPanel = sc.SizedPanel(_Pane, -1)
-        buttonPanel.SetSizerType("horizontal")
-        buttonPanel.SetSizerProps(expand=True)
-
-        self._ApplyButton = wx.Button(buttonPanel, wx.ID_APPLY | wx.ALIGN_RIGHT)
-        self._CancelButton = wx.Button(buttonPanel, wx.ID_CANCEL | wx.ALIGN_RIGHT)
-
-        self._ApplyButton.Bind(wx.EVT_BUTTON, self._OnApply)
-        self._CancelButton.Bind(wx.EVT_BUTTON, self._OnCancel)
+        #buttonPanel = sc.SizedPanel(_Pane, -1)
+        #buttonPanel.SetSizerType("horizontal")
+        #buttonPanel.SetSizerProps(expand=True)
+        #self._CancelButton.Bind(wx.EVT_BUTTON, self._OnCancel)
  
         
         # a little trick to make sure that you can't resize the dialog to
@@ -57,6 +63,9 @@ class SpeedControllerSettingsDialog(sc.SizedDialog):
     def _OnCancel(self, e):
         self.Close(True)  # Close the frame.
 
-    def _OnApply(self, e):
+    def _OnApplyPID(self, e):
         pidParams = (self._PTextControl.Value, self._ITextControl.Value, self._DTextControl.Value)
         self._MainModel.SetSpeedControlParams(pidParams)
+
+    def _OnApplySpeed(self, e):
+        self._MainModel.SetSpeed(self._SpeedTextControl.Value)

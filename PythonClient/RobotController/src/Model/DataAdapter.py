@@ -33,32 +33,38 @@ class DataAdapter(object):
         self._ReceiverThread.start()
         
         self._DataGateway.Start()
-        self._DataGateway.Write('SendCoeffs')
+        #self._DataGateway.Write('SendCoeffs')
         
     def _OnLineReceived(self, line):
-        #print(line)
-        lineParts = line.split('\t')
-        #print(lineParts)
-        
-        if (len(lineParts) == 0):
-            pass
-        
-        if (lineParts[0]=='Coeffs'):
-            coefficients = list(float(linePart) / 1000 for linePart in lineParts)
-            self._MainModel.OnCoefficientsReceived(coefficients)
-        elif (lineParts[0]=='SpeedCtrlParams'):
-            pass
-        else:
-            data = tuple(float(lineParts[0]) * _RadToDeg, # raw tilt angle [degree] from accelerometer
-                         float(lineParts[1]) * _RadToDeg, # tilt angle [degree] from sensor fusion (accelerometer & gyroscope)
-                         float(lineParts[2]) * _RadToDeg, # angular rate [degree / sec]
-                         float(lineParts[3]), # current speed motor 1 [m/sec]
-                         float(lineParts[4]), # current speed motor 2 [m/sec]
-                         )
-            timeStampedData = TimeStampedData(data)
+        try:
+            print(line)
+            lineParts = line.split('\t')
+            #print(lineParts)
             
-            self._MaxAgeBuffer.append(timeStampedData)
-            #print(self._MaxAgeBuffer)
+            if (len(lineParts) == 0):
+                pass
+            
+            if (lineParts[0] == 'Debug'):
+                print(line)
+            
+#            elif (lineParts[0] == 'Coeffs'):
+#                coefficients = list(float(linePart) / 1000 for linePart in lineParts)
+#                self._MainModel.OnCoefficientsReceived(coefficients)
+            elif (lineParts[0] == 'SpeedCtrlParams'):
+                pass
+            else:
+                data = (float(lineParts[0]) * _RadToDeg, # raw tilt angle [degree] from accelerometer
+                        float(lineParts[1]) * _RadToDeg, # tilt angle [degree] from sensor fusion (accelerometer & gyroscope)
+                        float(lineParts[2]) * _RadToDeg, # angular rate [degree / sec]
+                        float(lineParts[3]), # current speed motor 1 [m/sec]
+                        float(lineParts[4]), # current speed motor 2 [m/sec]
+                        )
+                timeStampedData = TimeStampedData(data)
+                
+                self._MaxAgeBuffer.append(timeStampedData)
+                #print(self._MaxAgeBuffer)
+        except ValueError:
+            print("Unrecognized format: " + line)
         
         
     def _AddDefaultValuesIfEmpty(self):
@@ -73,23 +79,66 @@ class DataAdapter(object):
         time.sleep(waitSeconds)
         
     def RequestCoefficients(self):
-        self._DataGateway.Write('SendCoeffs')
+        self._DataGateway.Write('SendCoeffs\r')
         
     def SendCoefficients(self, coefficients):
         '''
-        Sends the specified controller coefficients (a tuple of four floats) to the arduino board.
+        Sends the specified controller coefficients (a tuple of four floats) to the Arduino board.
         '''
-        message = 'SetCoeffs %d %d %d %d\n' % coefficients
+        message = 'SetCoeffs %d %d %d %d\r' % coefficients
         self._DataGateway.Write(message)
         
-    def SendSpeedControllerParams(self, floatParams):
+    def SendSpeedControllerParams(self, pidParams):
         '''
-        Sends the provided PID loop parameters provided as a tuple of three floats to the arduino board.
+        Sends the provided PID loop parameters provided as a tuple of three floats to the Arduino board.
+        Each value is broken into an integer base and exponent.
         '''
         # the receiver code only understands integers
-        integerParams = tuple(int(floatParam * 1000) for floatParam in floatParams)
-        message = 'SetSpeedCtrlParams %d %d %d\n' % integerParams
+        message = 'SetSpeedCtrlParams %d %d %d %d %d %d\r' % self._GetBaseAndExponents(pidParams)
+        self._DataGateway.Write(message)
+        
+    def SendSpeed(self, speed):
+        '''
+        Sends the specified desired speed to the Arduino board.
+        Each value is broken into an integer base and exponent.
+        '''
+        
+        # the receiver code only understands integers
+        message = 'SetSpeed %d %d %d %d\r' % self._GetBaseAndExponents((speed, speed))
         self._DataGateway.Write(message)
 
     def Stop(self):
         self._DataGateway.Stop()
+        
+    def _GetBaseAndExponent(self, floatValue, resolution=4):
+        '''
+        Converts a float into a tuple holding two integers:
+        The base, an integer with the number of digits equaling resolution.
+        The exponent indicating what the base needs to multiplied with to get
+        back the original float value with the specified resolution. 
+        '''
+        
+        if (floatValue == 0.0):
+            return (0, 0)
+        else:
+            exponent = int(1.0 + math.log10(floatValue))
+            multiplier = math.pow(10, resolution - exponent)
+            base = int(floatValue * multiplier)
+            
+            return(base, exponent - resolution)
+        
+    def _GetBaseAndExponents(self, floatValues, resolution=4):
+        '''
+        Converts a list or tuple of floats into a tuple holding two integers for each float:
+        The base, an integer with the number of digits equaling resolution.
+        The exponent indicating what the base needs to multiplied with to get
+        back the original float value with the specified resolution. 
+        '''
+        
+        baseAndExponents = []
+        for floatValue in floatValues:
+            baseAndExponent = self._GetBaseAndExponent(floatValue)
+            baseAndExponents.append(baseAndExponent[0])
+            baseAndExponents.append(baseAndExponent[1])
+        
+        return tuple(baseAndExponents)

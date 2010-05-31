@@ -9,17 +9,12 @@
   Acknowledgements:
   The following article provided valuable input:
   http://www.barello.net/Papers/Motion_Control/index.htm
-
-  Brett Beauregard's implementation of the PID controller:
-  http://www.arduino.cc/playground/Code/PIDLibrary
 */
 
 #ifndef SpeedController_h
 #define SpeedController_h
 
 #include "QuadratureEncoder.h"
-#include "Sabertooth.h"
-#include "PID_Beta6.h"
 #include <EEPROM.h>
 
 class SpeedController
@@ -27,29 +22,26 @@ class SpeedController
 	public:
 		float CurrentSpeed;
 
-		// update interval: miliseconds
 		// Base address is used as the address in the EEPROM to store the parameters to.
 		// The SpeedController consumes 12 bytes.
-		SpeedController(int updateInterval, QuadratureEncoder* pQuadratureEncoder, int baseAddress)
+		SpeedController(QuadratureEncoder* pQuadratureEncoder, int baseAddress)
 		{
 			_pQuadratureEncoder = pQuadratureEncoder;
 			_EEPROMBaseAddress = baseAddress;
 			_LastWheelPosition = 0;
 			_EncoderTicksPerMeterPerSec = 2328.21;
+			_EncoderTicksPerMeterPerSec = 1000.0;
 
-			float pParam, iParam, dParam;
-			ReadFloatFromEEPROM(_EEPROMBaseAddress, pParam);
-			ReadFloatFromEEPROM(_EEPROMBaseAddress + 1 * sizeof(float), iParam);
-			ReadFloatFromEEPROM(_EEPROMBaseAddress + 2 * sizeof(float), dParam);
-
-			*_pPID = PID(&_PIDInput, &_PIDOutput, &_PIDSetpoint, pParam, iParam, dParam);
-			_pPID->SetSampleTime(updateInterval);
+			ReadFloatFromEEPROM(_EEPROMBaseAddress, _P);
+			ReadFloatFromEEPROM(_EEPROMBaseAddress + 1 * sizeof(float), _I);
+			ReadFloatFromEEPROM(_EEPROMBaseAddress + 2 * sizeof(float), _D);
 
 			// The maximum number of encoder ticks at full speed is roughly 2500 per second
-			// For out update interval this come to
-			float maxTicksPerUpdate = 2500.0 * updateInterval / 1000.0;
-			_pPID->SetInputLimits(-maxTicksPerUpdate, maxTicksPerUpdate);
-			_pPID->SetOutputLimits(-127, +127); // the Sabertooth motor controller expects an imput from -127 to +127
+			// For our update interval this comes to
+			//float maxTicksPerUpdate = 2500.0 * updateInterval / 1000.0;
+			_LastError = 0.0;
+			_ErrorIntegral = 0.0;
+			_ErrorDiff = 0.0;
 		}
 
 		void Initialize()
@@ -64,49 +56,73 @@ class SpeedController
 		//    A value in the range [-127 ... +127] to be used to control the Sabertooth motor controller
 		float ComputeOutput(float desiredSpeed, float secondsSinceLastUpdate)
 		{
-			float desiredWheelPositionChange = desiredSpeed * _EncoderTicksPerMeterPerSec * secondsSinceLastUpdate;
+			//float desiredWheelPositionChange = desiredSpeed * _EncoderTicksPerMeterPerSec * secondsSinceLastUpdate;
 			long wheelPosition = _pQuadratureEncoder->GetPosition();
-			float actualWheelPositionChange = (wheelPosition - _LastWheelPosition);
-
-			CurrentSpeed = actualWheelPositionChange / _EncoderTicksPerMeterPerSec;
-
-		/*	float wheelVelocity = 0;
-			if (wheelPositionChange != 0)
-			{
-				wheelVelocity = wheelPositionChange / secondsSinceLastUpdate;
-			}*/
+			float actualWheelPositionChange = -(wheelPosition - _LastWheelPosition);
 			_LastWheelPosition = wheelPosition;
-			
-			_PIDSetpoint = desiredWheelPositionChange;
-			_PIDInput = actualWheelPositionChange;
 
-			_pPID->Compute();
+			CurrentSpeed = actualWheelPositionChange / _EncoderTicksPerMeterPerSec / secondsSinceLastUpdate;
 
-			return _PIDOutput;
+			float error = desiredSpeed - CurrentSpeed;
+
+			// Integral part
+			if (_I == 0.0)
+			{
+				_ErrorIntegral = 0.0;
+			}
+			else
+			{
+				_ErrorIntegral = _ErrorIntegral + error * secondsSinceLastUpdate;
+			}
+
+			float deltaError = error - _LastError;
+			if (deltaError > 0.0)
+			{
+				_ErrorDiff = deltaError / secondsSinceLastUpdate;
+			}
+			else
+			{
+				_ErrorDiff = 0;
+			}
+
+			float cv =
+				_P * error +
+				_I * _ErrorIntegral +
+				_D * _ErrorDiff;
+
+			_LastError = error;
+
+			return cv;
 		}
 
-		void SetPIDParams(float pParam, float iParam, float dParam)
+		void SetPIDParams(float p, float i, float d)
 		{
-			WriteFloatToEEPROM(_EEPROMBaseAddress, pParam);
-			WriteFloatToEEPROM(_EEPROMBaseAddress + 1 * sizeof(float), iParam);
-			WriteFloatToEEPROM(_EEPROMBaseAddress + 2 * sizeof(float), dParam);
+			WriteFloatToEEPROM(_EEPROMBaseAddress, p);
+			WriteFloatToEEPROM(_EEPROMBaseAddress + 1 * sizeof(float), i);
+			WriteFloatToEEPROM(_EEPROMBaseAddress + 2 * sizeof(float), d);
 
-			_pPID->SetTunings(pParam, iParam, dParam);
+			_P = p;
+			_I = i;
+			_D = d;
+
+			/*_LastError = 0.0;
+			_ErrorIntegral = 0.0;
+			_ErrorDiff = 0.0;*/
 		}
 
-		float GetPParam()
+		float GetP()
 		{
-			return _pPID->GetP_Param();
+			return _P;
 		}
 
-		float GetIParam()
+		float GetI()
 		{
-			return _pPID->GetI_Param();
+			return _I;
 		}
 
-		float GetDParam()
+		float GetD()
 		{
-			return _pPID->GetD_Param();
+			return _D;
 		}
 
 	private:
@@ -115,8 +131,8 @@ class SpeedController
 		long _LastWheelPosition;
 		float _EncoderTicksPerMeterPerSec;
 
-		float _PIDInput, _PIDOutput, _PIDSetpoint;
-		PID *_pPID;
+		float _P, _I, _D;
+		float _LastError, _ErrorIntegral, _ErrorDiff;
 
 		// Saves float in EEPROM
 		// For details see http://www.arduino.cc/playground/Code/EEPROMWriteAnything

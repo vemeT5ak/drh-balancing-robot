@@ -45,44 +45,21 @@ void setup()
   sabertooth.SetMinVoltage(12.4);
 }
 
-void loop1()
-{
-      encoderMotor1.GetInfo(interruptMilliSecs, a, b, position);
-
-      Serial.print(a);
-      Serial.print("\t");
-      Serial.print(b);
-      Serial.print("\t");
-      Serial.print(position);
-      Serial.println();
-      
-          int potiValue = analogRead(potiAnalogInPin);  // read the input pin
-    int speedValue = potiValue / 4 - 127; // (-127 ... +127)
-
-    // Serial.println(speedValue);
-
-    sabertooth.SetSpeedMotorA(speedValue);
-    sabertooth.SetSpeedMotorB(speedValue);
-
-      delay(50);
-}
-
 void loop()
 {
-
-    if (interruptMilliSecs != previousInterruptMilliSecs)
-    {
-      previousInterruptMilliSecs = interruptMilliSecs;
+  if (interruptMilliSecs != previousInterruptMilliSecs)
+  {
+    previousInterruptMilliSecs = interruptMilliSecs;
       
-      Serial.print(interruptMilliSecs);
-      Serial.print("\t");
-      Serial.print(a);
-      Serial.print("\t");
-      Serial.print(b);
-      Serial.print("\t");
-      Serial.print(position);
-      Serial.println();
-    }
+    Serial.print(interruptMilliSecs);
+    Serial.print("\t");
+    Serial.print(a);
+    Serial.print("\t");
+    Serial.print(b);
+    Serial.print("\t");
+    Serial.print(position);
+    Serial.println();
+  }
 
   unsigned long currentMilliseconds = millis();
 

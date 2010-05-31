@@ -55,6 +55,7 @@ class SerialDataGateway(object):
                 stringIO.write(data)
     
     def Write(self, data):
+        print('Sending ' + data)
         self._Serial.write(data)
 
 if __name__ == '__main__':
