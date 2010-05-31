@@ -66,7 +66,7 @@ class SpeedPlotPanel(sc.SizedPanel):
             
         self._Traces.append(trace)
         
-        legend = self._Plot.legend(('Motor 1', 'Motor 2'), shadow=False, labelspacing=0.001)
+        legend = self._Plot.legend(('Motor 1', 'Motor 2'), shadow=False, labelspacing=0.001, loc='upper left')
         for text in legend.get_texts():
             text.set_fontsize('x-small')    # the legend text fontsize
 
@@ -84,10 +84,17 @@ class SpeedPlotPanel(sc.SizedPanel):
         del self._SpeedValuesMotor1[:]
         del self._SpeedValuesMotor2[:]
 
-        for timeStampedValue in maxAgeBuffer:
-            self._TimeStamps.append(timeStampedValue.TimeStamp)
-            self._SpeedValuesMotor1.append(timeStampedValue.Value[3])
-            self._SpeedValuesMotor2.append(timeStampedValue.Value[4])       
+        try:
+            for timeStampedValue in maxAgeBuffer:
+                self._TimeStamps.append(timeStampedValue.TimeStamp)
+                self._SpeedValuesMotor1.append(timeStampedValue.Value[3])
+                self._SpeedValuesMotor2.append(timeStampedValue.Value[4])       
+        except RuntimeError:
+            # We iterate over a queue that is filled by another thread. The correct approach would
+            # be to use synchronization. For simplicity we ignore the error.
+            # Every so often we get an error of this form:
+            # RuntimeError: deque mutated during iteration    
+            pass       
 
     def _DrawPlot(self, maxAgeBuffer, now):
         """ Redraws the plot

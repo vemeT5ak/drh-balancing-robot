@@ -10,9 +10,8 @@
 #include <IDG300.h>
 #include <TiltCalculator.h>
 #include <SpeedController.h>
-#include <PID_Beta6.h>
 
-boolean isDebugEnabled = true;
+boolean isDebugEnabled = false;
 
 ADXL330 adxl330 = ADXL330(15,14,13);
 IDG300 idg300 = IDG300(8,9);
@@ -29,25 +28,27 @@ QuadratureEncoder encoderMotor1(18, 24, 22);
 QuadratureEncoder encoderMotor2(19, 25);
 
 unsigned long previousMilliseconds = 0;
-unsigned long updateInterval = 50; // update interval in milli seconds
+unsigned long updateInterval = 100; // update interval in milli seconds
 
-SpeedController speedControllerMotor1 = SpeedController(updateInterval, &encoderMotor1, 0);
-SpeedController speedControllerMotor2 = SpeedController(updateInterval, &encoderMotor1, 12);
+SpeedController speedControllerMotor1 = SpeedController(&encoderMotor1, 0);
+SpeedController speedControllerMotor2 = SpeedController(&encoderMotor2, 12);
 
 // Instantiate Messenger object with the message function and the default separator (the space character)
 Messenger messenger = Messenger(); 
 
-int motor1PwmOutPin = 11;
-int motor2PwmOutPin = 12;
+int motor1PwmOutPin = 12;
+int motor2PwmOutPin = 11;
 
-float desiredSpeedMotor1 = 0.0;
-float desiredSpeedMotor2 = 0.0;
+float commandedSpeedMotor1 = 0.0;
+float commandedSpeedMotor2 = 0.0;
 
 void setup()
 {
   analogReference(EXTERNAL); // we set the analog reference for the analog to digital converters to 3.3V
   Serial.begin(115200);
 
+  isDebugEnabled = true;
+  
   attachInterrupt(5, HandleMotor1InterruptA, CHANGE); // Pin 18 
   attachInterrupt(4, HandleMotor2InterruptA, CHANGE); // Pin 19
 
@@ -96,15 +97,9 @@ void Update(unsigned long milliSecsSinceLastUpdate)
   float secondsSinceLastUpdate = milliSecsSinceLastUpdate / 1000.0;
   tiltCalculator.UpdateState(idg300.XRadPerSec, secondsSinceLastUpdate);
 
-  float motorSignal1 = speedControllerMotor1.ComputeOutput(desiredSpeedMotor1, secondsSinceLastUpdate);
-  float motorSignal2 = speedControllerMotor2.ComputeOutput(desiredSpeedMotor2, secondsSinceLastUpdate);
+  float motorSignal1 = speedControllerMotor1.ComputeOutput(commandedSpeedMotor1, secondsSinceLastUpdate);
+  float motorSignal2 = speedControllerMotor2.ComputeOutput(commandedSpeedMotor2, secondsSinceLastUpdate);
 
-  //Serial.print("rad");
-  //Serial.print("\t");
-  //Serial.print(adxl330.ZAcceleration);
-  //Serial.print("\t");
-  //Serial.print(-adxl330.YAcceleration);
-  //Serial.print("\t");
   Serial.print(rawTiltAngleRad, 4); // 4 decimal places
   Serial.print("\t");
   Serial.print(tiltCalculator.AngleRad, 4);
@@ -114,13 +109,17 @@ void Update(unsigned long milliSecsSinceLastUpdate)
   Serial.print(speedControllerMotor1.CurrentSpeed, 4);
   Serial.print("\t");
   Serial.print(speedControllerMotor2.CurrentSpeed, 4);
+  Serial.print("\t");
+  Serial.print(motorSignal1, 4);
+  Serial.print("\t");
+  Serial.print(motorSignal2, 4);
   Serial.println();
 
   //float motor1Torque = balancer1.CalculateTorque(tiltCalculator.AngleRad, tiltCalculator.AngularRateRadPerSec, secondsSinceLastUpdate);
   //float motor2Torque = balancer1.CalculateTorque(tiltCalculator.AngleRad, tiltCalculator.AngularRateRadPerSec, secondsSinceLastUpdate);
 
-  sabertooth.SetSpeedMotorA(motorSignal1);
-  sabertooth.SetSpeedMotorB(motorSignal2);
+  sabertooth.SetSpeedMotorB(motorSignal1);
+  sabertooth.SetSpeedMotorA(motorSignal2);
 }
 
 // Interrupt service routines for motor 1 quadrature encoder
@@ -142,85 +141,72 @@ void HandleMotor2InterruptA()
 // The Kx values are read as integers and are devided by 1000 to get floats.
 void OnMssageCompleted()
 {
-  if (messenger.checkString("SetDesiredSpeed"))
+  if (messenger.checkString("SetSpeed"))
   {
-    SetDesiredSpeed();
+    SetCommandedSpeed();
+    return;
   }
 
   if (messenger.checkString("SendSpeedCtrlParams"))
   {
     SendSpeedCtrlParams();
+    return;
   }
 
   if (messenger.checkString("SetSpeedCtrlParams"))
   {
     SetSpeedCtrlParams();
+    return;
   }
 
   if (messenger.checkString("SendCoeffs"))
   {
     SendCoefficients();
+    return;
   }
 
+  /*
   if (messenger.checkString("SetCoeffs"))
   {
-    //SetCoefficients(&balancer1);
-    //SetCoefficients(&balancer2);
+    SetCoefficients(&balancer1);
+    SetCoefficients(&balancer2);
+    return;
+  }
+  */
+  
+  // clear out unrecognized content
+  while(messenger.available())
+  {
+    messenger.readInt();
   }
 }
 
-void SetDesiredSpeed()
+void SetCommandedSpeed()
 {
-  float factor = 1000;
-  desiredSpeedMotor1 = messenger.readInt() / factor;
-  desiredSpeedMotor2 = messenger.readInt() / factor;
- 
-  if (isDebugEnabled)
-  {
-    Serial.print("Debug - New desired speed");
-    Serial.print("\t");
-    Serial.print(desiredSpeedMotor1, 4);
-    Serial.print("\t");
-    Serial.print(desiredSpeedMotor2, 4);
-    Serial.println();
-  }
+  commandedSpeedMotor1 = GetFloatFromBaseAndExponent(messenger.readInt(), messenger.readInt());
+  commandedSpeedMotor2 = GetFloatFromBaseAndExponent(messenger.readInt(), messenger.readInt());
 }
 
 void SendSpeedCtrlParams()
 {
   Serial.print("SpeedCtrlParams");
   Serial.print("\t");
-  Serial.print(speedControllerMotor1.GetPParam(), 4);
+  Serial.print(speedControllerMotor1.GetP(), 4);
   Serial.print("\t");
-  Serial.print(speedControllerMotor1.GetIParam(), 4);
+  Serial.print(speedControllerMotor1.GetI(), 4);
   Serial.print("\t");
-  Serial.print(speedControllerMotor1.GetDParam(), 4);
+  Serial.print(speedControllerMotor1.GetD(), 4);
   Serial.println();
 }
 
 void SetSpeedCtrlParams()
 {
-  float pParam, iParam, dParam;
-  float factor = 1000;
-
-  pParam = messenger.readInt() / factor;
-  iParam = messenger.readInt() / factor;
-  dParam = messenger.readInt() / factor;
+  float p = GetFloatFromBaseAndExponent(messenger.readInt(), messenger.readInt());;
+  float i = GetFloatFromBaseAndExponent(messenger.readInt(), messenger.readInt());;
+  float d = GetFloatFromBaseAndExponent(messenger.readInt(), messenger.readInt());;
   
-  speedControllerMotor1.SetPIDParams(pParam, iParam, dParam);
-  speedControllerMotor2.SetPIDParams(pParam, iParam, dParam);
-
-  if (isDebugEnabled)
-  {
-    Serial.print("Debug - New PID params");
-    Serial.print("\t");
-    Serial.print(pParam, 4);
-    Serial.print("\t");
-    Serial.print(iParam, 4);
-    Serial.print("\t");
-    Serial.print(dParam, 4);
-    Serial.println();
-  }
+  speedControllerMotor1.SetPIDParams(p, i, d);
+  speedControllerMotor2.SetPIDParams(p, i, d);
 }
 
 void SendCoefficients()
@@ -242,16 +228,18 @@ void SendCoefficients()
 /*
 void SetCoefficients(Balancer* pBalancer)
 {
-  float k1, k2, k3, k4;
-  float factor = 1000;
-
-  k1 = messenger.readInt() / factor;
-  k2 = messenger.readInt() / factor;
-  k3 = messenger.readInt() / factor;
-  k4 = messenger.readInt() / factor;
+  float k1 = (float)messenger.readDouble();
+  float k2 = (float)messenger.readDouble();
+  float k3 = (float)messenger.readDouble();
+  float k4 = (float)messenger.readDouble();
 
   //pBalancer -> SetCoefficients(k1, k2, k3, k4);
 }
 */
+
+float GetFloatFromBaseAndExponent(int base, int exponent)
+{
+  return base * pow(10, exponent);
+}
 
 

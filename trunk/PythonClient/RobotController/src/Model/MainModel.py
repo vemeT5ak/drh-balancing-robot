@@ -49,6 +49,9 @@ class MainModel(object):
         self.SpeedControlParams['D'] = floatParams[2]
         
         self._DataAdapter.SendSpeedControllerParams(floatParams)
+        
+    def SetSpeed(self, speed):
+        self._DataAdapter.SendSpeed(float(speed))
     
     def Close(self):
         self._DataAdapter.Stop()
