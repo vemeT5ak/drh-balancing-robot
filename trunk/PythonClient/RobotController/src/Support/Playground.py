@@ -19,7 +19,7 @@ def GetBaseAndExponent(floatValue, resolution=4):
     if (floatValue == 0.0):
         return (0, 0)
     else:
-        exponent = int(1.0 + math.log10(floatValue))
+        exponent = int(1.0 + math.log10(abs(floatValue)))
         multiplier = math.pow(10, resolution - exponent)
         base = int(floatValue * multiplier)
         
@@ -38,3 +38,4 @@ if __name__ == '__main__':
     TestRoundTrip(12.345)
     TestRoundTrip(9.999999)
     TestRoundTrip(0)
+    TestRoundTrip(-3.14)
