@@ -1,0 +1,14 @@
+Controller Pins: see http://www.gamesx.com/controldata/psxcont/psxcont.htm
+
+Controller has the male plug.
+Color codes for my female adapter to Arduino cable:
+
+DATA    brown     grey
+COMMAND orange    orange
+--
+GND     black     black
+VCC     red       red
+ATT     yellow    yellow
+CLOCK   blue      green
+--
+ACK     green
