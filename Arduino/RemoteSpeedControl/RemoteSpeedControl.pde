@@ -3,6 +3,7 @@
 #include <math.h>
 #include <Messenger.h>
 #include <EEPROM.h>
+#include "Psx_analog.h"      // Includes the Psx Library to access a Sony Playstation controller
 #include <Sabertooth.h>
 #include <QuadratureEncoder.h>
 #include <Balancer.h>
@@ -12,6 +13,11 @@
 #include <SpeedController.h>
 
 boolean isDebugEnabled = false;
+
+#define dataPin 34
+#define cmndPin 35
+#define attPin 37
+#define clockPin 36
 
 ADXL330 adxl330 = ADXL330(15,14,13);
 IDG300 idg300 = IDG300(8,9);
@@ -30,17 +36,18 @@ QuadratureEncoder encoderMotor2(19, 25);
 unsigned long previousMilliseconds = 0;
 unsigned long updateInterval = 100; // update interval in milli seconds
 
+Psx Psx;
+
 SpeedController speedControllerMotor1 = SpeedController(&encoderMotor1, 0);
 SpeedController speedControllerMotor2 = SpeedController(&encoderMotor2, 12);
 
 // Instantiate Messenger object with the message function and the default separator (the space character)
 Messenger messenger = Messenger(); 
 
-int motor1PwmOutPin = 12;
-int motor2PwmOutPin = 11;
-
 float commandedSpeedMotor1 = 0.0;
 float commandedSpeedMotor2 = 0.0;
+
+boolean _PS2ControllerActive = false;
 
 void setup()
 {
@@ -51,6 +58,9 @@ void setup()
   
   attachInterrupt(5, HandleMotor1InterruptA, CHANGE); // Pin 18 
   attachInterrupt(4, HandleMotor2InterruptA, CHANGE); // Pin 19
+
+  Psx.setupPins(dataPin, cmndPin, attPin, clockPin);  // Defines what each pin is used (Data Pin #, Cmnd Pin #, Att Pin #, Clk Pin #)
+  Psx.initcontroller(psxAnalog);    
 
   // give Sabertooth motor driver time to get ready
   delay(2000);
@@ -96,6 +106,35 @@ void Update(unsigned long milliSecsSinceLastUpdate)
 
   float secondsSinceLastUpdate = milliSecsSinceLastUpdate / 1000.0;
   tiltCalculator.UpdateState(idg300.XRadPerSec, secondsSinceLastUpdate);
+
+
+  Psx.poll(); // poll the Sony Playstation controller
+  if (Psx.Controller_mode == 140)
+  {
+    // analog mode; we use the right joystick to determine the desired speed
+    _PS2ControllerActive = true;
+
+    float maxSpeed = 2.0;
+    float mainSpeed = -(Psx.Right_y - 128.0) / 128.0 * maxSpeed;
+    
+    float rightLeftRatio = -(Psx.Right_x - 128) / 128.0;
+    
+    commandedSpeedMotor1 = mainSpeed + rightLeftRatio * maxSpeed;
+    commandedSpeedMotor2 = mainSpeed - rightLeftRatio * maxSpeed;
+    
+    if (commandedSpeedMotor1 > maxSpeed) { commandedSpeedMotor1 = maxSpeed; }
+    if (commandedSpeedMotor2 > maxSpeed) { commandedSpeedMotor2 = maxSpeed; }
+  }
+  else
+  {
+    if (_PS2ControllerActive)
+    {
+      // we swicthed from PS2 controller active to not activ
+      commandedSpeedMotor1 = 0;
+      commandedSpeedMotor2 = 0;
+    }
+    _PS2ControllerActive = false;
+  }
 
   float motorSignal1 = speedControllerMotor1.ComputeOutput(commandedSpeedMotor1, secondsSinceLastUpdate);
   float motorSignal2 = speedControllerMotor2.ComputeOutput(commandedSpeedMotor2, secondsSinceLastUpdate);
