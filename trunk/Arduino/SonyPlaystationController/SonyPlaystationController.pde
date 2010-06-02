@@ -63,10 +63,10 @@
 #include "WProgram.h"
 #include "Psx_analog.h"                                          // Includes the Psx Library 
 
-#define dataPin 34
+#define dataPin 36
 #define cmndPin 35
-#define attPin 37
-#define clockPin 36
+#define attPin 33
+#define clockPin 34
 
 //#define motorup  5
 //#define motordown 6
@@ -93,14 +93,14 @@ void setup()
 
   
   // wait for the long string to be sent 
-  delay(100);
+  delay(10);
 }
 
 void loop()
 {
   Psx.poll();                                      // Psx.read() initiates the PSX controller and returns
   Serial.print("\n");                                            // the button data
-  Serial.print(Psx.Controller_mode, BIN);     // prints value as string in hexadecimal (base 16) 
+  Serial.print(Psx.Controller_mode, DEC);     // prints value as string in hexadecimal (base 16) 
   Serial.print("\t");
   Serial.print(Psx.digital_buttons, BIN);     // prints value as string in hexadecimal (base 16)  
   Serial.print("\t");
@@ -112,6 +112,6 @@ void loop()
   Serial.print("\t");
   Serial.print(Psx.Left_y, DEC);     // prints value as string in hexadecimal (base 16)      
   
-  delay(100); 
+  delay(10); 
 }
 

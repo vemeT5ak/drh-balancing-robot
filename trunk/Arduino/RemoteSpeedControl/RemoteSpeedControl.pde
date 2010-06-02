@@ -14,10 +14,10 @@
 
 boolean isDebugEnabled = false;
 
-#define dataPin 34
+#define dataPin 36
 #define cmndPin 35
-#define attPin 37
-#define clockPin 36
+#define attPin 33
+#define clockPin 34
 
 ADXL330 adxl330 = ADXL330(15,14,13);
 IDG300 idg300 = IDG300(8,9);
