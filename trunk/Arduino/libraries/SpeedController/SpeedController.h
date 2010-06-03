@@ -24,21 +24,17 @@ class SpeedController
 
 		// Base address is used as the address in the EEPROM to store the parameters to.
 		// The SpeedController consumes 12 bytes.
-		SpeedController(QuadratureEncoder* pQuadratureEncoder, int baseAddress)
+		SpeedController(QuadratureEncoder* pQuadratureEncoder, float encoderTicksPerMeterPerSec, int baseAddress)
 		{
 			_pQuadratureEncoder = pQuadratureEncoder;
 			_EEPROMBaseAddress = baseAddress;
 			_LastWheelPosition = 0;
-			_EncoderTicksPerMeterPerSec = 2328.21;
-			_EncoderTicksPerMeterPerSec = 1000.0;
+			_EncoderTicksPerMeterPerSec = 2300.0;
 
 			ReadFloatFromEEPROM(_EEPROMBaseAddress, _P);
 			ReadFloatFromEEPROM(_EEPROMBaseAddress + 1 * sizeof(float), _I);
 			ReadFloatFromEEPROM(_EEPROMBaseAddress + 2 * sizeof(float), _D);
 
-			// The maximum number of encoder ticks at full speed is roughly 2500 per second
-			// For our update interval this comes to
-			//float maxTicksPerUpdate = 2500.0 * updateInterval / 1000.0;
 			_LastError = 0.0;
 			_ErrorIntegral = 0.0;
 			_ErrorDiff = 0.0;
