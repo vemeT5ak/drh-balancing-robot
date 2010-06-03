@@ -12,7 +12,6 @@
 #ifndef Balancer_h
 #define Balancer_h
 
-#include "QuadratureEncoder.h"
 #include <EEPROM.h>
 
 class Balancer
@@ -22,39 +21,21 @@ class Balancer
 
 		// Base address is used as the address in the EEPROM to store the coefficients to.
 		// The Balancer consumes 16 bytes.
-		Balancer(QuadratureEncoder* pQuadratureEncoder, int baseAddress)
+		Balancer(int baseAddress)
 		{
-			_pQuadratureEncoder = pQuadratureEncoder;
 			_EEPROMBaseAddress = baseAddress;
-			_LastWheelPosition = 0;
-
 			LoadCoefficients();
 		}
 
-		void Initialize()
+		float CalculateSpeedChange(float angle, float angleVelocity, float positionError, float velocityError)
 		{
-			_LastWheelPosition = _pQuadratureEncoder -> GetPosition();
-		}
-
-		float CalculateTorque(float angle, float angleVelocity, float secondsSinceLastUpdate)
-		{
-			long wheelPosition = _pQuadratureEncoder -> GetPosition();
-			long wheelPositionChange = wheelPosition - _LastWheelPosition;
-
-			float wheelVelocity = 0;
-			if (wheelPositionChange != 0)
-			{
-				wheelVelocity = wheelPositionChange / secondsSinceLastUpdate;
-			}
-			_LastWheelPosition = wheelPosition;
-
-			float torque =
+			float speedChange =
 				angle * K1 +
 				angleVelocity * K2 +
-				wheelPosition * K3 +
-				wheelVelocity * K4;
+				positionError * K3 +
+				velocityError * K4;
 
-			return torque; 
+			return speedChange; 
 		}
 
 		void SetCoefficients(float k1, float k2, float k3, float k4)
