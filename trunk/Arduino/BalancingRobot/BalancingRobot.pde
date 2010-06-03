@@ -13,6 +13,8 @@
 #include <SpeedController.h>
 
 #define c_MaxSpeed 1.0
+#define c_MetersPerTick 0.000430
+#define c_EncoderTicksPerMeterPerSec 2300.0
 
 ADXL330 _ADXL330 = ADXL330(15,14,13);
 IDG300 _IDG300 = IDG300(8,9);
@@ -35,20 +37,20 @@ QuadratureEncoder _EncoderMotor2(19, 25);
 #define c_PsxClockPin 34
 Psx _Psx;
 
-#define encoderTicksPerMeterPerSec 2300.0
-SpeedController _SpeedControllerMotor1 = SpeedController(&_EncoderMotor1, encoderTicksPerMeterPerSec, 0);
-SpeedController _SpeedControllerMotor2 = SpeedController(&_EncoderMotor2, encoderTicksPerMeterPerSec, 12);
-//Balancer balancer = Balancer(&_EncoderMotor1, 24);
+SpeedController _SpeedControllerMotor1 = SpeedController(&_EncoderMotor1, c_EncoderTicksPerMeterPerSec, 0);
+SpeedController _SpeedControllerMotor2 = SpeedController(&_EncoderMotor2, c_EncoderTicksPerMeterPerSec, 12);
+Balancer _Balancer = Balancer(24);
 
 // Instantiate Messenger object with the message function and the default separator (the space character)
 Messenger _Messenger = Messenger(); 
 
 float _CommandedSpeedMotor1 = 0.0;
 float _CommandedSpeedMotor2 = 0.0;
+long _StartPositionTicks = 0;
 
 boolean _PS2ControllerActive = false;
 
-#define c_UpdateInterval 100 // update interval in milli seconds
+#define c_UpdateInterval 20 // update interval in milli seconds
 unsigned long _PreviousMilliseconds = 0;
 
 void setup()
@@ -71,7 +73,8 @@ void setup()
 
   _SpeedControllerMotor1.Initialize();
   _SpeedControllerMotor2.Initialize();
-  //balancer.Initialize();
+  
+  _StartPositionTicks = (_EncoderMotor1.GetPosition() + _EncoderMotor2.GetPosition()) / 2;
 
   _Messenger.attach(OnMssageCompleted);
 
@@ -136,8 +139,25 @@ void Update(unsigned long milliSecsSinceLastUpdate)
     _PS2ControllerActive = false;
   }
 
-  float motorSignal1 = _SpeedControllerMotor1.ComputeOutput(_CommandedSpeedMotor1, secondsSinceLastUpdate);
-  float motorSignal2 = _SpeedControllerMotor2.ComputeOutput(_CommandedSpeedMotor2, secondsSinceLastUpdate);
+  float currentSpeed = (_SpeedControllerMotor1.CurrentSpeed + _SpeedControllerMotor2.CurrentSpeed) / 2.0;
+  float commandedSpeed = (_CommandedSpeedMotor1 + _CommandedSpeedMotor2) / 2.0;
+  
+  long currentPositionTicks = (_EncoderMotor1.GetPosition() + _EncoderMotor2.GetPosition()) / 2;
+  float positionError = (_StartPositionTicks - currentPositionTicks) * c_MetersPerTick;
+  
+  float speedChange = _Balancer.CalculateSpeedChange(
+    _TiltCalculator.AngleRad,
+    _TiltCalculator.AngularRateRadPerSec,
+    positionError,  // position position
+    commandedSpeed - currentSpeed  // velocity error
+    );
+
+  float requiredSpeed = currentSpeed + speedChange;
+  float motorSignal1 = _SpeedControllerMotor1.ComputeOutput(requiredSpeed, secondsSinceLastUpdate);
+  float motorSignal2 = _SpeedControllerMotor2.ComputeOutput(requiredSpeed, secondsSinceLastUpdate);
+
+  _Sabertooth.SetSpeedMotorB(motorSignal1);
+  _Sabertooth.SetSpeedMotorA(motorSignal2);
 
   Serial.print(rawTiltAngleRad, 4); // 4 decimal places
   Serial.print("\t");
@@ -153,12 +173,6 @@ void Update(unsigned long milliSecsSinceLastUpdate)
   Serial.print("\t");
   Serial.print(motorSignal2, 4);
   Serial.println();
-
-  //float motor1Torque = balancer1.CalculateTorque(tiltCalculator.AngleRad, tiltCalculator.AngularRateRadPerSec, secondsSinceLastUpdate);
-  //float motor2Torque = balancer1.CalculateTorque(tiltCalculator.AngleRad, tiltCalculator.AngularRateRadPerSec, secondsSinceLastUpdate);
-
-  _Sabertooth.SetSpeedMotorB(motorSignal1);
-  _Sabertooth.SetSpeedMotorA(motorSignal2);
 }
 
 // Interrupt service routines for motor 1 quadrature encoder
