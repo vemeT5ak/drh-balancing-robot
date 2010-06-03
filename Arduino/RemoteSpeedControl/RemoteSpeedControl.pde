@@ -12,6 +12,8 @@
 #include <TiltCalculator.h>
 #include <SpeedController.h>
 
+#define c_MaxSpeed 1.0
+
 boolean isDebugEnabled = false;
 
 #define dataPin 36
@@ -38,8 +40,9 @@ unsigned long updateInterval = 100; // update interval in milli seconds
 
 Psx Psx;
 
-SpeedController speedControllerMotor1 = SpeedController(&encoderMotor1, 0);
-SpeedController speedControllerMotor2 = SpeedController(&encoderMotor2, 12);
+#define encoderTicksPerMeterPerSec 2300.0
+SpeedController speedControllerMotor1 = SpeedController(&encoderMotor1, encoderTicksPerMeterPerSec, 0);
+SpeedController speedControllerMotor2 = SpeedController(&encoderMotor2, encoderTicksPerMeterPerSec, 12);
 
 // Instantiate Messenger object with the message function and the default separator (the space character)
 Messenger messenger = Messenger(); 
@@ -114,16 +117,15 @@ void Update(unsigned long milliSecsSinceLastUpdate)
     // analog mode; we use the right joystick to determine the desired speed
     _PS2ControllerActive = true;
 
-    float maxSpeed = 2.0;
-    float mainSpeed = -(Psx.Right_y - 128.0) / 128.0 * maxSpeed;
+    float mainSpeed = -(Psx.Right_y - 128.0) / 128.0 * c_MaxSpeed;
     
     float rightLeftRatio = -(Psx.Right_x - 128) / 128.0;
     
-    commandedSpeedMotor1 = mainSpeed + rightLeftRatio * maxSpeed;
-    commandedSpeedMotor2 = mainSpeed - rightLeftRatio * maxSpeed;
+    commandedSpeedMotor1 = mainSpeed + rightLeftRatio * c_MaxSpeed;
+    commandedSpeedMotor2 = mainSpeed - rightLeftRatio * c_MaxSpeed;
     
-    if (commandedSpeedMotor1 > maxSpeed) { commandedSpeedMotor1 = maxSpeed; }
-    if (commandedSpeedMotor2 > maxSpeed) { commandedSpeedMotor2 = maxSpeed; }
+    if (commandedSpeedMotor1 > c_MaxSpeed) { commandedSpeedMotor1 = c_MaxSpeed; }
+    if (commandedSpeedMotor2 > c_MaxSpeed) { commandedSpeedMotor2 = c_MaxSpeed; }
   }
   else
   {
