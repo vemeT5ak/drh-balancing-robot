@@ -27,11 +27,11 @@ class Balancer
 			LoadCoefficients();
 		}
 
-		float CalculateSpeedChange(float angle, float angleVelocity, float positionError, float velocityError)
+		float CalculateSpeedChange(float angleError, float angularVelocityError, float positionError, float velocityError)
 		{
 			float speedChange =
-				angle * K1 +
-				angleVelocity * K2 +
+				angleError * K1 +
+				angularVelocityError * K2 +
 				positionError * K3 +
 				velocityError * K4;
 

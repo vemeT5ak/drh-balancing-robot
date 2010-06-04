@@ -28,6 +28,10 @@ class MainModel(object):
         
         self._Settings = Settings(self)
         self._Settings.Load()
+        
+        print("MainModel load:")
+        print(self.SpeedControlParams)
+        print(self.BalancerParams)
 
         self.MaxAgeBuffer = MaxAgeBuffer(timedelta(seconds=10))
         #dataReceiver = TestDataReceiver()
@@ -69,5 +73,8 @@ class MainModel(object):
 
     def Close(self):
         self._DataAdapter.Stop()
+        print("MainModel close:")
+        print(self.SpeedControlParams)
+        print(self.BalancerParams)
         self._Settings.Save()
         
