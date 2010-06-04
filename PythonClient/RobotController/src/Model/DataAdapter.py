@@ -81,11 +81,11 @@ class DataAdapter(object):
     def RequestCoefficients(self):
         self._DataGateway.Write('SendCoeffs\r')
         
-    def SendCoefficients(self, coefficients):
+    def SendBalancerParams(self, balancerParams):
         '''
         Sends the specified controller coefficients (a tuple of four floats) to the Arduino board.
         '''
-        message = 'SetCoeffs %d %d %d %d\r' % coefficients
+        message = 'SetCoeffs %d %d %d %d %d %d %d %d\r' % self._GetBaseAndExponents(balancerParams)
         self._DataGateway.Write(message)
         
     def SendSpeedControllerParams(self, pidParams):

@@ -16,7 +16,7 @@ class Settings(object):
     _ConfigFileName = 'BalancingBotConfig.txt'
     _SectionGeneral = 'General'
     _SectionSpeedControl = 'SpeedControl'
-    _SectionCoeffs = 'Coeffs'
+    _SectionBalancerParams = 'BalancerParams'
 
     def __init__(self, mainModel):
         '''
@@ -39,11 +39,11 @@ class Settings(object):
         speedControlParams['I'] = self.GetFloat(configParser, self._SectionSpeedControl, 'I', speedControlParams['I'])
         speedControlParams['D'] = self.GetFloat(configParser, self._SectionSpeedControl, 'D', speedControlParams['D'])
         
-        coefficients = self._MainModel.Coefficients
-        coefficients['K1'] = self.GetInt(configParser, self._SectionCoeffs, 'K1', coefficients['K1'])
-        coefficients['K2'] = self.GetInt(configParser, self._SectionCoeffs, 'K2', coefficients['K2'])
-        coefficients['K3'] = self.GetInt(configParser, self._SectionCoeffs, 'K3', coefficients['K3'])
-        coefficients['K4'] = self.GetInt(configParser, self._SectionCoeffs, 'K4', coefficients['K4'])
+        balancerParams = self._MainModel.BalancerParams
+        balancerParams['K1'] = self.GetInt(configParser, self._SectionBalancerParams, 'K1', balancerParams['K1'])
+        balancerParams['K2'] = self.GetInt(configParser, self._SectionBalancerParams, 'K2', balancerParams['K2'])
+        balancerParams['K3'] = self.GetInt(configParser, self._SectionBalancerParams, 'K3', balancerParams['K3'])
+        balancerParams['K4'] = self.GetInt(configParser, self._SectionBalancerParams, 'K4', balancerParams['K4'])
     
     def Save(self):
         configParser = ConfigParser.RawConfigParser()
@@ -57,12 +57,12 @@ class Settings(object):
         configParser.set(self._SectionSpeedControl, 'I', speedControlParams['I'])
         configParser.set(self._SectionSpeedControl, 'D', speedControlParams['D'])
 
-        configParser.add_section(self._SectionCoeffs)
-        coefficients = self._MainModel.Coefficients
-        configParser.set(self._SectionCoeffs, 'K1', coefficients['K1'])
-        configParser.set(self._SectionCoeffs, 'K2', coefficients['K2'])
-        configParser.set(self._SectionCoeffs, 'K3', coefficients['K3'])
-        configParser.set(self._SectionCoeffs, 'K4', coefficients['K4'])
+        configParser.add_section(self._SectionBalancerParams)
+        balancerParams = self._MainModel.BalancerParams
+        configParser.set(self._SectionBalancerParams, 'K1', balancerParams['K1'])
+        configParser.set(self._SectionBalancerParams, 'K2', balancerParams['K2'])
+        configParser.set(self._SectionBalancerParams, 'K3', balancerParams['K3'])
+        configParser.set(self._SectionBalancerParams, 'K4', balancerParams['K4'])
 
         with open(self._ConfigFilePath,'w') as configFile:
             configParser.write(configFile)
