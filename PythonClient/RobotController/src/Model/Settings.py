@@ -40,10 +40,10 @@ class Settings(object):
         speedControlParams['D'] = self.GetFloat(configParser, self._SectionSpeedControl, 'D', speedControlParams['D'])
         
         balancerParams = self._MainModel.BalancerParams
-        balancerParams['K1'] = self.GetInt(configParser, self._SectionBalancerParams, 'K1', balancerParams['K1'])
-        balancerParams['K2'] = self.GetInt(configParser, self._SectionBalancerParams, 'K2', balancerParams['K2'])
-        balancerParams['K3'] = self.GetInt(configParser, self._SectionBalancerParams, 'K3', balancerParams['K3'])
-        balancerParams['K4'] = self.GetInt(configParser, self._SectionBalancerParams, 'K4', balancerParams['K4'])
+        balancerParams['K1'] = self.GetFloat(configParser, self._SectionBalancerParams, 'K1', balancerParams['K1'])
+        balancerParams['K2'] = self.GetFloat(configParser, self._SectionBalancerParams, 'K2', balancerParams['K2'])
+        balancerParams['K3'] = self.GetFloat(configParser, self._SectionBalancerParams, 'K3', balancerParams['K3'])
+        balancerParams['K4'] = self.GetFloat(configParser, self._SectionBalancerParams, 'K4', balancerParams['K4'])
     
     def Save(self):
         configParser = ConfigParser.RawConfigParser()

@@ -12,7 +12,9 @@ class CoefficientsDialog(sc.SizedDialog):
 
         self._MainModel = mainModel
         balancerParams = mainModel.BalancerParams
-        
+        print("CoefficientsDialog load:")
+        print(balancerParams)
+
         pane = self.GetContentsPane()
         pane.SetSizerType("form")
         

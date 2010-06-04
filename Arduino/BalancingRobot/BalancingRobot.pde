@@ -216,13 +216,11 @@ void OnMssageCompleted()
     return;
   }
 
-  /*
   if (_Messenger.checkString("SetCoeffs"))
   {
-    SetCoefficients(&balancer);
+    SetBalancerCoefficients();
     return;
   }
-  */
   
   // clear out unrecognized content
   while(_Messenger.available())
@@ -251,9 +249,9 @@ void SendSpeedCtrlParams()
 
 void SetSpeedCtrlParams()
 {
-  float p = GetFloatFromBaseAndExponent(_Messenger.readInt(), _Messenger.readInt());;
-  float i = GetFloatFromBaseAndExponent(_Messenger.readInt(), _Messenger.readInt());;
-  float d = GetFloatFromBaseAndExponent(_Messenger.readInt(), _Messenger.readInt());;
+  float p = GetFloatFromBaseAndExponent(_Messenger.readInt(), _Messenger.readInt());
+  float i = GetFloatFromBaseAndExponent(_Messenger.readInt(), _Messenger.readInt());
+  float d = GetFloatFromBaseAndExponent(_Messenger.readInt(), _Messenger.readInt());
   
   _SpeedControllerMotor1.SetPIDParams(p, i, d);
   _SpeedControllerMotor2.SetPIDParams(p, i, d);
@@ -275,17 +273,15 @@ void SendCoefficients()
   */
 }
 
-/*
-void SetCoefficients(Balancer* pBalancer)
+void SetBalancerCoefficients()
 {
-  float k1 = (float)_Messenger.readDouble();
-  float k2 = (float)_Messenger.readDouble();
-  float k3 = (float)_Messenger.readDouble();
-  float k4 = (float)_Messenger.readDouble();
+  float k1 = GetFloatFromBaseAndExponent(_Messenger.readInt(), _Messenger.readInt());
+  float k2 = GetFloatFromBaseAndExponent(_Messenger.readInt(), _Messenger.readInt());
+  float k3 = GetFloatFromBaseAndExponent(_Messenger.readInt(), _Messenger.readInt());
+  float k4 = GetFloatFromBaseAndExponent(_Messenger.readInt(), _Messenger.readInt());
 
-  //pBalancer -> SetCoefficients(k1, k2, k3, k4);
+  _Balancer.SetCoefficients(k1, k2, k3, k4);
 }
-*/
 
 float GetFloatFromBaseAndExponent(int base, int exponent)
 {
