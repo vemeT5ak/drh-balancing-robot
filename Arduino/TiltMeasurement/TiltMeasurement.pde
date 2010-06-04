@@ -4,12 +4,20 @@
 #include <ADXL330.h>
 #include <IDG300.h>
 #include <TiltCalculator.h>
+#include "Psx_analog.h"      // Includes the Psx Library to access a Sony Playstation controller
 
 ADXL330 _ADXL330 = ADXL330(15,14,13);
 IDG300 _IDG300 = IDG300(8,9);
 TiltCalculator _TiltCalculator = TiltCalculator();
 
 #define c_UpdateInterval 1000 // update interval in milli seconds
+
+// Sony Playstation 2 Controller
+#define c_PsxDataPin 36
+#define c_PsxCommandPin 35
+#define c_PsxAttPin 33
+#define c_PsxClockPin 34
+Psx _Psx;
 
 void setup()
 {
@@ -39,6 +47,12 @@ void loop()
   Serial.print(_TiltCalculator.AngleRad * radToDegree, 4);
   Serial.print("\t");
   Serial.print(_TiltCalculator.AngularRateRadPerSec * radToDegree, 4);
+  Serial.print("\t");
+  Serial.print(_IDG300.XRadPerSec * radToDegree, 4);
+  Serial.print("\t");
+  Serial.print(_IDG300.rawXValue);
+  Serial.print("\t");
+  Serial.print(_IDG300.rawYValue);
   Serial.println();
   
   delay(c_UpdateInterval);
