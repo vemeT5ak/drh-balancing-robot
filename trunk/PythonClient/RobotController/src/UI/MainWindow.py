@@ -74,7 +74,7 @@ class MainWindow(sc.SizedFrame):
         _MenuSave = _FileMenu.Append(wx.ID_SAVE, "&Save plot\tCtrl-S", "Save plot to file")
         #menuOpen = _FileMenu.Append(wx.ID_OPEN, "&Open"," Open a file to edit")
         _MenuEditSpeedController = _FileMenu.Append(wx.ID_ANY, "Speed controller", "Edit speed controller settings")
-        _MenuEditCoefficients = _FileMenu.Append(wx.ID_PROPERTIES, "Coefficients", "Edit Coefficients")
+        _MenuEditBalancerParams = _FileMenu.Append(wx.ID_PROPERTIES, "Balancer params", "Edit balancer parameters")
         _MenuAbout= _FileMenu.Append(wx.ID_ABOUT, "&About"," Information about this program")
         _MenuExit = _FileMenu.Append(wx.ID_EXIT,"E&xit"," Terminate the program")
 
@@ -86,7 +86,7 @@ class MainWindow(sc.SizedFrame):
         #self.Bind(wx.EVT_MENU, self.OnOpen, menuOpen)
         self.Bind(wx.EVT_MENU, self._OnSavePlot, _MenuSave)
         self.Bind(wx.EVT_MENU, self._OnEditSpeedController, _MenuEditSpeedController)
-        self.Bind(wx.EVT_MENU, self._OnEditCoefficients, _MenuEditCoefficients)
+        self.Bind(wx.EVT_MENU, self._OnEditEditBalancerParams, _MenuEditBalancerParams)
         self.Bind(wx.EVT_MENU, self._OnExit, _MenuExit)
         self.Bind(wx.EVT_MENU, self._OnAbout, _MenuAbout)
 
@@ -125,9 +125,9 @@ class MainWindow(sc.SizedFrame):
 
         dlg.Destroy()
 
-    def _OnEditCoefficients(self, e):
+    def _OnEditEditBalancerParams(self, e):
         # Opens the coefficients dialog
-        dlg = CoefficientsDialog(self, -1)
+        dlg = CoefficientsDialog(self, self._MainModel)
         dlg.CenterOnParent()
 
         # this does not return until the dialog is closed.
