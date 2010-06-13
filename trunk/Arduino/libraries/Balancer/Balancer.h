@@ -27,15 +27,15 @@ class Balancer
 			LoadCoefficients();
 		}
 
-		float CalculateSpeedChange(float angleError, float angularVelocityError, float positionError, float velocityError)
+		float CalculateTorque(float angleError, float angularVelocityError, float positionError, float velocityError)
 		{
-			float speedChange =
+			float torque =
 				angleError * K1 +
 				angularVelocityError * K2 +
 				positionError * K3 +
 				velocityError * K4;
 
-			return speedChange; 
+			return torque; 
 		}
 
 		void SetCoefficients(float k1, float k2, float k3, float k4)

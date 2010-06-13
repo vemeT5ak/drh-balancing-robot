@@ -16,6 +16,8 @@
 #define c_MetersPerTick 0.000430
 #define c_EncoderTicksPerMeterPerSec 2300.0
 
+float _TopSpeed = c_MaxSpeed * 0.9;
+
 ADXL330 _ADXL330 = ADXL330(15,14,13);
 IDG300 _IDG300 = IDG300(8,9);
 TiltCalculator _TiltCalculator = TiltCalculator();
@@ -41,6 +43,9 @@ SpeedController _SpeedControllerMotor1 = SpeedController(&_EncoderMotor1, c_Enco
 SpeedController _SpeedControllerMotor2 = SpeedController(&_EncoderMotor2, c_EncoderTicksPerMeterPerSec, 12);
 Balancer _Balancer = Balancer(24);
 
+float _FixedAngleOffset = -4.0 * PI / 180;
+float _AngleOffset = 0.0;
+
 // Instantiate Messenger object with the message function and the default separator (the space character)
 Messenger _Messenger = Messenger(); 
 
@@ -50,7 +55,7 @@ long _StartPositionTicks = 0;
 
 boolean _PS2ControllerActive = false;
 
-#define c_UpdateInterval 20 // update interval in milli seconds
+#define c_UpdateInterval 5 // update interval in milli seconds
 unsigned long _PreviousMilliseconds = 0;
 
 void setup()
@@ -102,7 +107,7 @@ void loop()
 void Update(unsigned long milliSecsSinceLastUpdate)
 {
   _ADXL330.Update();
-  float rawTiltAngleRad = atan2(_ADXL330.ZAcceleration, -_ADXL330.YAcceleration);
+  float rawTiltAngleRad = atan2(_ADXL330.ZAcceleration, -_ADXL330.YAcceleration) + _FixedAngleOffset + _AngleOffset;
 
   _TiltCalculator.UpdateKalman(rawTiltAngleRad);
 
@@ -111,7 +116,9 @@ void Update(unsigned long milliSecsSinceLastUpdate)
   float secondsSinceLastUpdate = milliSecsSinceLastUpdate / 1000.0;
   _TiltCalculator.UpdateState(_IDG300.XRadPerSec, secondsSinceLastUpdate);
 
-
+  float motorSignal1, motorSignal2;
+  float torque;
+  
   _Psx.poll(); // poll the Sony Playstation controller
   if (_Psx.Controller_mode == 140)
   {
@@ -125,36 +132,50 @@ void Update(unsigned long milliSecsSinceLastUpdate)
     _CommandedSpeedMotor1 = mainSpeed + rightLeftRatio * c_MaxSpeed;
     _CommandedSpeedMotor2 = mainSpeed - rightLeftRatio * c_MaxSpeed;
     
-    if (_CommandedSpeedMotor1 > c_MaxSpeed) { _CommandedSpeedMotor1 = c_MaxSpeed; }
-    if (_CommandedSpeedMotor2 > c_MaxSpeed) { _CommandedSpeedMotor2 = c_MaxSpeed; }
+    if (_CommandedSpeedMotor1 > _TopSpeed) { _CommandedSpeedMotor1 = _TopSpeed; }
+    if (_CommandedSpeedMotor2 > _TopSpeed) { _CommandedSpeedMotor2 = _TopSpeed; }
+
+    motorSignal1 = _SpeedControllerMotor1.ComputeOutput(_CommandedSpeedMotor1, secondsSinceLastUpdate);
+    motorSignal2 = _SpeedControllerMotor2.ComputeOutput(_CommandedSpeedMotor2, secondsSinceLastUpdate);
   }
   else
   {
     if (_PS2ControllerActive)
     {
-      // we swicthed from PS2 controller active to not activ
+      // we switched from PS2 controller active to not active
+      _PS2ControllerActive = false;
+      motorSignal1 = 0;
+      motorSignal2 = 0;
+      
       _CommandedSpeedMotor1 = 0;
       _CommandedSpeedMotor2 = 0;
     }
-    _PS2ControllerActive = false;
+    
+    float currentSpeed = (_SpeedControllerMotor1.CurrentSpeed + _SpeedControllerMotor2.CurrentSpeed) / 2.0;
+    float commandedSpeed = (_CommandedSpeedMotor1 + _CommandedSpeedMotor2) / 2.0;
+    
+    long currentPositionTicks = (_EncoderMotor1.GetPosition() + _EncoderMotor2.GetPosition()) / 2;
+    float positionError = (_StartPositionTicks - currentPositionTicks) * c_MetersPerTick;
+    
+    torque = _Balancer.CalculateTorque(
+      _TiltCalculator.AngleRad,
+      _TiltCalculator.AngularRateRadPerSec,
+      positionError,  // position position
+      commandedSpeed - currentSpeed  // velocity error
+      );
+      
+    if (torque > 0)
+    {
+      torque += 5;
+    }
+    if (torque < 0)
+    {
+      torque -= 5;
+    }
+    
+    motorSignal1 = torque;
+    motorSignal2 = torque;
   }
-
-  float currentSpeed = (_SpeedControllerMotor1.CurrentSpeed + _SpeedControllerMotor2.CurrentSpeed) / 2.0;
-  float commandedSpeed = (_CommandedSpeedMotor1 + _CommandedSpeedMotor2) / 2.0;
-  
-  long currentPositionTicks = (_EncoderMotor1.GetPosition() + _EncoderMotor2.GetPosition()) / 2;
-  float positionError = (_StartPositionTicks - currentPositionTicks) * c_MetersPerTick;
-  
-  float speedChange = _Balancer.CalculateSpeedChange(
-    _TiltCalculator.AngleRad,
-    _TiltCalculator.AngularRateRadPerSec,
-    positionError,  // position position
-    commandedSpeed - currentSpeed  // velocity error
-    );
-
-  float requiredSpeed = currentSpeed + speedChange;
-  float motorSignal1 = _SpeedControllerMotor1.ComputeOutput(requiredSpeed, secondsSinceLastUpdate);
-  float motorSignal2 = _SpeedControllerMotor2.ComputeOutput(requiredSpeed, secondsSinceLastUpdate);
 
   _Sabertooth.SetSpeedMotorB(motorSignal1);
   _Sabertooth.SetSpeedMotorA(motorSignal2);
@@ -169,9 +190,13 @@ void Update(unsigned long milliSecsSinceLastUpdate)
   Serial.print("\t");
   Serial.print(_SpeedControllerMotor2.CurrentSpeed, 4);
   Serial.print("\t");
+  Serial.print(torque, 4);
+  Serial.print("\t");
   Serial.print(motorSignal1, 4);
   Serial.print("\t");
   Serial.print(motorSignal2, 4);
+  Serial.print("\t");
+  Serial.print(_AngleOffset * 180 / PI, 4);
   Serial.println();
 }
 
@@ -281,6 +306,8 @@ void SetBalancerCoefficients()
   float k4 = GetFloatFromBaseAndExponent(_Messenger.readInt(), _Messenger.readInt());
 
   _Balancer.SetCoefficients(k1, k2, k3, k4);
+  
+  _AngleOffset = PI / 180.0 * GetFloatFromBaseAndExponent(_Messenger.readInt(), _Messenger.readInt());
 }
 
 float GetFloatFromBaseAndExponent(int base, int exponent)
