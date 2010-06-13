@@ -32,11 +32,16 @@ class CoefficientsDialog(sc.SizedDialog):
         wx.StaticText(pane, -1, "K3:")
         self._K3TextControl = wx.TextCtrl(pane, -1, str(balancerParams['K3']))
         self._K3TextControl.SetSizerProps(expand=True)
-        
+
         # row 4
         wx.StaticText(pane, -1, "K4:")
         self._K4TextControl = wx.TextCtrl(pane, -1, str(balancerParams['K4']))
         self._K4TextControl.SetSizerProps(expand=True)
+
+        # row 5
+        wx.StaticText(pane, -1, "DPhi:")
+        self._DPhiTextControl = wx.TextCtrl(pane, -1, str(balancerParams['DPhi']))
+        self._DPhiTextControl.SetSizerProps(expand=True)
 
         wx.StaticText(pane, -1, '')
 
@@ -49,5 +54,5 @@ class CoefficientsDialog(sc.SizedDialog):
         self.SetMinSize(self.GetSize())
 
     def _OnApply(self, e):
-        balancerParams = (self._K1TextControl.Value, self._K2TextControl.Value, self._K3TextControl.Value, self._K4TextControl.Value)
+        balancerParams = (self._K1TextControl.Value, self._K2TextControl.Value, self._K3TextControl.Value, self._K4TextControl.Value, self._DPhiTextControl.Value)
         self._MainModel.SetBalancerParams(balancerParams)

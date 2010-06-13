@@ -44,6 +44,7 @@ class Settings(object):
         balancerParams['K2'] = self.GetFloat(configParser, self._SectionBalancerParams, 'K2', balancerParams['K2'])
         balancerParams['K3'] = self.GetFloat(configParser, self._SectionBalancerParams, 'K3', balancerParams['K3'])
         balancerParams['K4'] = self.GetFloat(configParser, self._SectionBalancerParams, 'K4', balancerParams['K4'])
+        balancerParams['DPhi'] = self.GetFloat(configParser, self._SectionBalancerParams, 'DPhi', balancerParams['DPhi'])
     
     def Save(self):
         configParser = ConfigParser.RawConfigParser()
@@ -63,6 +64,7 @@ class Settings(object):
         configParser.set(self._SectionBalancerParams, 'K2', balancerParams['K2'])
         configParser.set(self._SectionBalancerParams, 'K3', balancerParams['K3'])
         configParser.set(self._SectionBalancerParams, 'K4', balancerParams['K4'])
+        configParser.set(self._SectionBalancerParams, 'DPhi', balancerParams['DPhi'])
 
         with open(self._ConfigFilePath,'w') as configFile:
             configParser.write(configFile)

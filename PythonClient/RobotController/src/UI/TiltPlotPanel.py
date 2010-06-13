@@ -24,6 +24,7 @@ class TiltPlotPanel(sc.SizedPanel):
         self._TimeStamps = []
         self._Values1 = []
         self._Values2 = []
+        self._Values3 = []
         
         self._ExtractPlotData(maxAgeBuffer)
 
@@ -65,8 +66,16 @@ class TiltPlotPanel(sc.SizedPanel):
             )[0]
             
         self._Traces.append(trace)
+
+        trace = self._Plot.plot(
+            self._TimeStamps,
+            self._Values3,
+            linewidth=1,
+            color=(0, 0, 1),
+            )[0]      
+        self._Traces.append(trace)
         
-        legend = self._Plot.legend(('Acceleration', 'Kalman'), shadow=False, labelspacing=0.001, loc='upper left')
+        legend = self._Plot.legend(('Acceleration', 'Kalman', 'omega'), shadow=False, labelspacing=0.001, loc='upper left')
         for text in legend.get_texts():
             text.set_fontsize('x-small')    # the legend text fontsize
 
@@ -83,12 +92,14 @@ class TiltPlotPanel(sc.SizedPanel):
         del self._TimeStamps[:]
         del self._Values1[:]
         del self._Values2[:]
+        del self._Values3[:]
         
         try:
             for timeStampedValue in maxAgeBuffer:
                 self._TimeStamps.append(timeStampedValue.TimeStamp)
                 self._Values1.append(timeStampedValue.Value[0])
                 self._Values2.append(timeStampedValue.Value[1])
+                self._Values3.append(timeStampedValue.Value[2])
         except RuntimeError:
             # We iterate over a queue that is filled by another thread. The correct approach would
             # be to use synchronization. For simplicity we ignore the error.
@@ -113,6 +124,9 @@ class TiltPlotPanel(sc.SizedPanel):
 
         self._Traces[1].set_xdata(self._TimeStamps)
         self._Traces[1].set_ydata(self._Values2)
+
+        self._Traces[2].set_xdata(self._TimeStamps)
+        self._Traces[2].set_ydata(self._Values3)
 
 #        self.plot_data.set_xdata(np.arange(len(self.data)))
 #        self.plot_data.set_ydata(np.array(self.data))

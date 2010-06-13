@@ -24,7 +24,7 @@ class MainModel(object):
         
         self.SerialPort = serialPort
         self.SpeedControlParams = {'P':0, 'I':0, 'D':0} # P,I,D parameters for the speed controller
-        self.BalancerParams = {'K1':0, 'K2':0, 'K3':0, 'K4':0} # Coefficients K1, .. K4
+        self.BalancerParams = {'K1':0, 'K2':0, 'K3':0, 'K4':0, 'DPhi':0} # Coefficients K1, .. K4
         
         self._Settings = Settings(self)
         self._Settings.Load()
@@ -68,6 +68,7 @@ class MainModel(object):
         self.BalancerParams['K2'] = floatParams[1]
         self.BalancerParams['K3'] = floatParams[2]
         self.BalancerParams['K4'] = floatParams[3]
+        self.BalancerParams['DPhi'] = floatParams[4]
         
         self._DataAdapter.SendBalancerParams(floatParams)
 
