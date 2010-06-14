@@ -4,6 +4,7 @@
 #include <Messenger.h>
 #include <EEPROM.h>
 #include "Psx_analog.h"      // Includes the Psx Library to access a Sony Playstation controller
+#include "TimeInfo.h"
 #include <Sabertooth.h>
 #include <QuadratureEncoder.h>
 #include <Balancer.h>
@@ -18,6 +19,7 @@
 
 float _TopSpeed = c_MaxSpeed * 0.9;
 
+TimeInfo _TimeInfo = TimeInfo();
 ADXL330 _ADXL330 = ADXL330(15,14,13);
 IDG300 _IDG300 = IDG300(8,9);
 TiltCalculator _TiltCalculator = TiltCalculator();
@@ -51,12 +53,12 @@ Messenger _Messenger = Messenger();
 
 float _CommandedSpeedMotor1 = 0.0;
 float _CommandedSpeedMotor2 = 0.0;
-long _StartPositionTicks = 0;
 
 boolean _PS2ControllerActive = false;
 
 #define c_UpdateInterval 5 // update interval in milli seconds
-unsigned long _PreviousMilliseconds = 0;
+
+long _StartPositionTicks = 0;
 
 void setup()
 {
@@ -67,55 +69,90 @@ void setup()
   attachInterrupt(4, HandleMotor2InterruptA, CHANGE); // Pin 19
 
   _Psx.setupPins(c_PsxDataPin, c_PsxCommandPin, c_PsxAttPin, c_PsxClockPin);  // Defines what each pin is used (Data Pin #, Cmnd Pin #, Att Pin #, Clk Pin #)
-  _Psx.initcontroller(psxAnalog);    
+  _Psx.initcontroller(psxAnalog);
 
-  // give Sabertooth motor driver time to get ready
-  delay(2000);
+  _Messenger.attach(OnMssageCompleted);
+  
+  // give the system time to settle in and the Sabertooth motor driver time to get ready
+  Warmup();
 
   // Setting baud rate for communication with the Sabertooth device.
   _Sabertooth.InitializeCom(19200);
   _Sabertooth.SetMinVoltage(12.4);
 
-  _SpeedControllerMotor1.Initialize();
-  _SpeedControllerMotor2.Initialize();
+  _SpeedControllerMotor1.Reset(_TimeInfo.CurrentMillisecs);
+  _SpeedControllerMotor2.Reset(_TimeInfo.CurrentMillisecs);
   
   _StartPositionTicks = (_EncoderMotor1.GetPosition() + _EncoderMotor2.GetPosition()) / 2;
+}
 
-  _Messenger.attach(OnMssageCompleted);
+// We give the system time to settle in. during this time we only measure and calculate but don't drive
+void Warmup()
+{
+  _TimeInfo.Update();
+  
+  unsigned long endWarmupMillisecs = _TimeInfo.CurrentMillisecs + 2000; // 2 sec to settle in
+  UpdateTiltInfo();
 
-  _PreviousMilliseconds = millis();
+  while(true)
+  {
+    unsigned long currentMilliseconds = millis();
+    unsigned long milliSecsSinceLastUpdate = currentMilliseconds - _TimeInfo.LastUpdateMillisecs;;
+    if(milliSecsSinceLastUpdate > c_UpdateInterval)
+    {
+      // time for another update
+      _TimeInfo.Update();
+      UpdateTiltInfo();
+    }
+
+    ReadSerial();
+    
+    if (currentMilliseconds > endWarmupMillisecs)
+    {
+      // done warming up
+      break;
+    }
+  }
 }
 
 void loop()
 {
   unsigned long currentMilliseconds = millis();
 
-  unsigned long milliSecsSinceLastUpdate = currentMilliseconds - _PreviousMilliseconds;
+  unsigned long milliSecsSinceLastUpdate = currentMilliseconds - _TimeInfo.LastUpdateMillisecs;;
   if(milliSecsSinceLastUpdate > c_UpdateInterval)
   {
-    Update(milliSecsSinceLastUpdate);
-    // save the last time we updated
-    _PreviousMilliseconds = currentMilliseconds;
+    // time for another update
+    _TimeInfo.Update();
+    UpdateTiltInfo();
+    IssueCommands();
   }
 
+  ReadSerial();
+}
+
+void UpdateTiltInfo()
+{
+  _ADXL330.Update();
+  float rawTiltAngleRad = atan2(_ADXL330.ZAcceleration, -_ADXL330.YAcceleration);
+
+  _TiltCalculator.UpdateKalman(rawTiltAngleRad);
+  _IDG300.Update();
+  _TiltCalculator.UpdateState(_IDG300.XRadPerSec, _TimeInfo.SecondsSinceLastUpdate);
+}
+
+void ReadSerial()
+{
   while (Serial.available())
   {
     _Messenger.process(Serial.read());
   }
 }
 
-void Update(unsigned long milliSecsSinceLastUpdate)
+void IssueCommands()
 {
-  _ADXL330.Update();
-  float rawTiltAngleRad = atan2(_ADXL330.ZAcceleration, -_ADXL330.YAcceleration) + _FixedAngleOffset + _AngleOffset;
-
-  _TiltCalculator.UpdateKalman(rawTiltAngleRad);
-
-  _IDG300.Update();
-
-  float secondsSinceLastUpdate = milliSecsSinceLastUpdate / 1000.0;
-  _TiltCalculator.UpdateState(_IDG300.XRadPerSec, secondsSinceLastUpdate);
-
+  UpdateTiltInfo();
+  
   float motorSignal1, motorSignal2;
   float torque;
   
@@ -135,8 +172,8 @@ void Update(unsigned long milliSecsSinceLastUpdate)
     if (_CommandedSpeedMotor1 > _TopSpeed) { _CommandedSpeedMotor1 = _TopSpeed; }
     if (_CommandedSpeedMotor2 > _TopSpeed) { _CommandedSpeedMotor2 = _TopSpeed; }
 
-    motorSignal1 = _SpeedControllerMotor1.ComputeOutput(_CommandedSpeedMotor1, secondsSinceLastUpdate);
-    motorSignal2 = _SpeedControllerMotor2.ComputeOutput(_CommandedSpeedMotor2, secondsSinceLastUpdate);
+    motorSignal1 = _SpeedControllerMotor1.ComputeOutput(_CommandedSpeedMotor1, &_TimeInfo);
+    motorSignal2 = _SpeedControllerMotor2.ComputeOutput(_CommandedSpeedMotor2, &_TimeInfo);
   }
   else
   {
@@ -151,19 +188,19 @@ void Update(unsigned long milliSecsSinceLastUpdate)
       _CommandedSpeedMotor2 = 0;
     }
     
-    float currentSpeed = (_SpeedControllerMotor1.CurrentSpeed + _SpeedControllerMotor2.CurrentSpeed) / 2.0;
-    float commandedSpeed = (_CommandedSpeedMotor1 + _CommandedSpeedMotor2) / 2.0;
-    
-    long currentPositionTicks = (_EncoderMotor1.GetPosition() + _EncoderMotor2.GetPosition()) / 2;
-    float positionError = (_StartPositionTicks - currentPositionTicks) * c_MetersPerTick;
+    _SpeedControllerMotor1.Update(&_TimeInfo);
+    _SpeedControllerMotor2.Update(&_TimeInfo);
+    float speedError = (_SpeedControllerMotor1.CurrentSpeed + _SpeedControllerMotor2.CurrentSpeed) / 2.0;
+    float positionError = (_SpeedControllerMotor1.DistanceTraveled + _SpeedControllerMotor2.DistanceTraveled) / 2.0;
     
     torque = _Balancer.CalculateTorque(
-      _TiltCalculator.AngleRad,
+      _TiltCalculator.AngleRad + _FixedAngleOffset + _AngleOffset,
       _TiltCalculator.AngularRateRadPerSec,
       positionError,  // position position
-      commandedSpeed - currentSpeed  // velocity error
+      speedError  // velocity error
       );
-      
+    
+    // The motors don't start with low requested torque values -> we add an offset
     if (torque > 0)
     {
       torque += 5;
@@ -180,9 +217,9 @@ void Update(unsigned long milliSecsSinceLastUpdate)
   _Sabertooth.SetSpeedMotorB(motorSignal1);
   _Sabertooth.SetSpeedMotorA(motorSignal2);
 
-  Serial.print(rawTiltAngleRad, 4); // 4 decimal places
+  Serial.print(_TiltCalculator.MeasuredAngleRad + _FixedAngleOffset + _AngleOffset, 4); // 4 decimal places
   Serial.print("\t");
-  Serial.print(_TiltCalculator.AngleRad, 4);
+  Serial.print(_TiltCalculator.AngleRad + _FixedAngleOffset + _AngleOffset, 4);
   Serial.print("\t");
   Serial.print(_TiltCalculator.AngularRateRadPerSec, 4);
   Serial.print("\t");
@@ -195,6 +232,28 @@ void Update(unsigned long milliSecsSinceLastUpdate)
   Serial.print(motorSignal1, 4);
   Serial.print("\t");
   Serial.print(motorSignal2, 4);
+  Serial.print("\t");
+  Serial.print(_AngleOffset * 180 / PI, 4);
+  Serial.println();
+}
+
+void SendInfo()
+{
+  Serial.print(_TiltCalculator.MeasuredAngleRad + _FixedAngleOffset + _AngleOffset, 4); // 4 decimal places
+  Serial.print("\t");
+  Serial.print(_TiltCalculator.AngleRad + _FixedAngleOffset + _AngleOffset, 4);
+  Serial.print("\t");
+  Serial.print(_TiltCalculator.AngularRateRadPerSec, 4);
+  Serial.print("\t");
+  Serial.print(_SpeedControllerMotor1.CurrentSpeed, 4);
+  Serial.print("\t");
+  Serial.print(_SpeedControllerMotor2.CurrentSpeed, 4);
+  Serial.print("\t");
+  Serial.print(0.0, 4);
+  Serial.print("\t");
+  Serial.print(0.0, 4);
+  Serial.print("\t");
+  Serial.print(0.0, 4);
   Serial.print("\t");
   Serial.print(_AngleOffset * 180 / PI, 4);
   Serial.println();

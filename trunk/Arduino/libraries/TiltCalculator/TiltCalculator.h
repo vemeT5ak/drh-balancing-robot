@@ -124,6 +124,7 @@ class TiltCalculator
 		 * bias.
 		 */
 		void UpdateKalman(float measuredAngleRad);
+		float MeasuredAngleRad; // readonly, only persisted to allow for simpler reporting
 		float AngleRad; // readonly
 		float AngularRateRadPerSec; // readonly
 	private:
