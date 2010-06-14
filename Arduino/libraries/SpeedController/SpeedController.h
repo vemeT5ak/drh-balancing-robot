@@ -14,13 +14,16 @@
 #ifndef SpeedController_h
 #define SpeedController_h
 
-#include "QuadratureEncoder.h"
 #include <EEPROM.h>
+#include "QuadratureEncoder.h"
+#include "WProgram.h"
+#include "TimeInfo.h"
 
 class SpeedController
 {
 	public:
 		float CurrentSpeed;
+		float DistanceTraveled;
 
 		// Base address is used as the address in the EEPROM to store the parameters to.
 		// The SpeedController consumes 12 bytes.
@@ -28,8 +31,10 @@ class SpeedController
 		{
 			_pQuadratureEncoder = pQuadratureEncoder;
 			_EEPROMBaseAddress = baseAddress;
-			_LastWheelPosition = 0;
+			_TravelStartTickCount = 0;
+			_LastUpdateTickCount = 0;
 			_EncoderTicksPerMeterPerSec = 2300.0;
+			_DirectionFactor = -1;
 
 			ReadFloatFromEEPROM(_EEPROMBaseAddress, _P);
 			ReadFloatFromEEPROM(_EEPROMBaseAddress + 1 * sizeof(float), _I);
@@ -40,25 +45,42 @@ class SpeedController
 			_ErrorDiff = 0.0;
 		}
 
-		void Initialize()
+		void Reset(unsigned long millisecs)
 		{
-			_LastWheelPosition = _pQuadratureEncoder->GetPosition();
+			_TravelStartMillisecs = millisecs;
+			_TravelStartTickCount = _pQuadratureEncoder->GetPosition();
+
+			_LastUpdateTickCount = _TravelStartTickCount;
+			CurrentSpeed = 0.0;
+			DistanceTraveled = 0.0;
+		}
+
+		void ResetDistanceTraveled(unsigned long millisecs)
+		{
+			_TravelStartMillisecs = millisecs;
+			_TravelStartTickCount = _pQuadratureEncoder->GetPosition();
+		}
+
+		void Update(TimeInfo* pTimeInfo)
+		{
+			long currentTickCount = _pQuadratureEncoder->GetPosition();
+			long tickCountChange = _DirectionFactor * (currentTickCount - _LastUpdateTickCount);
+			_LastUpdateTickCount = currentTickCount;
+
+			CurrentSpeed = tickCountChange / _EncoderTicksPerMeterPerSec / pTimeInfo->SecondsSinceLastUpdate;
+
+			unsigned long millisecsSinceTravelStart = pTimeInfo->CurrentMillisecs - _TravelStartMillisecs;
+			tickCountChange = _DirectionFactor * (currentTickCount - _TravelStartTickCount);
+			DistanceTraveled = tickCountChange / _EncoderTicksPerMeterPerSec / millisecsSinceTravelStart * 1000.0;
 		}
 
 		// Inputs:
 		//    Desired speed in m/sec
-		//    seconds since the last update was called
 		// Returns:
 		//    A value in the range [-127 ... +127] to be used to control the Sabertooth motor controller
-		float ComputeOutput(float desiredSpeed, float secondsSinceLastUpdate)
+		float ComputeOutput(float desiredSpeed, TimeInfo* pTimeInfo)
 		{
-			//float desiredWheelPositionChange = desiredSpeed * _EncoderTicksPerMeterPerSec * secondsSinceLastUpdate;
-			long wheelPosition = _pQuadratureEncoder->GetPosition();
-			float actualWheelPositionChange = -(wheelPosition - _LastWheelPosition);
-			_LastWheelPosition = wheelPosition;
-
-			CurrentSpeed = actualWheelPositionChange / _EncoderTicksPerMeterPerSec / secondsSinceLastUpdate;
-
+			Update(pTimeInfo);
 			float error = desiredSpeed - CurrentSpeed;
 
 			// Integral part
@@ -68,13 +90,13 @@ class SpeedController
 			}
 			else
 			{
-				_ErrorIntegral = _ErrorIntegral + error * secondsSinceLastUpdate;
+				_ErrorIntegral = _ErrorIntegral + error * pTimeInfo->SecondsSinceLastUpdate;
 			}
 
 			float deltaError = error - _LastError;
 			if (deltaError > 0.0)
 			{
-				_ErrorDiff = deltaError / secondsSinceLastUpdate;
+				_ErrorDiff = deltaError / pTimeInfo->SecondsSinceLastUpdate;
 			}
 			else
 			{
@@ -124,8 +146,16 @@ class SpeedController
 	private:
 		QuadratureEncoder* _pQuadratureEncoder;
 		int _EEPROMBaseAddress;
-		long _LastWheelPosition;
+
+		unsigned long _TravelStartMillisecs;
+		long _TravelStartTickCount;
+
+		unsigned long _LastUpdateMillisecs;
+		float _SecondsSinceLastUpdate;
+		long _LastUpdateTickCount;
+
 		float _EncoderTicksPerMeterPerSec;
+		float _DirectionFactor; // +1 means moving forward increases the ticks; -1 means ticks decrease
 
 		float _P, _I, _D;
 		float _LastError, _ErrorIntegral, _ErrorDiff;

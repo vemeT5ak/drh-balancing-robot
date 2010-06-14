@@ -169,6 +169,7 @@ void TiltCalculator::UpdateState(float pitchGyroMeasurement, float deltaT)
  */
 void TiltCalculator::UpdateKalman(float measuredAngleRad)
 {
+	MeasuredAngleRad = measuredAngleRad;
 	/* Compute our measured angle and the error in our estimate */
 	float angleError = measuredAngleRad - AngleRad;
 
