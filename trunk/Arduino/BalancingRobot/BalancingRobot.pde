@@ -17,6 +17,8 @@
 #define c_MetersPerTick 0.000430
 #define c_EncoderTicksPerMeterPerSec 2300.0
 
+#define c_SteeringPotAnalogIn 1
+
 float _TopSpeed = c_MaxSpeed * 0.9;
 
 TimeInfo _TimeInfo = TimeInfo();
@@ -151,7 +153,7 @@ void ReadSerial()
 
 void IssueCommands()
 {
-  UpdateTiltInfo();
+  //UpdateTiltInfo();
   
   float motorSignal1, motorSignal2;
   float torque;
@@ -199,19 +201,13 @@ void IssueCommands()
       positionError,  // position position
       speedError  // velocity error
       );
+      
+    // read steering potentiometer
+    int potiValue = analogRead(c_SteeringPotAnalogIn);  // read the input pin
+    float torqueOffset = potiValue / 4.0 - 127.0; // (-127 ... +127)
     
-    // The motors don't start with low requested torque values -> we add an offset
-    if (torque > 0)
-    {
-      torque += 5;
-    }
-    if (torque < 0)
-    {
-      torque -= 5;
-    }
-    
-    motorSignal1 = torque;
-    motorSignal2 = torque;
+    motorSignal1 = AdjustMotorSignal(torque + torqueOffset);
+    motorSignal2 = AdjustMotorSignal(torque - torqueOffset);
   }
 
   _Sabertooth.SetSpeedMotorB(motorSignal1);
@@ -235,6 +231,26 @@ void IssueCommands()
   Serial.print("\t");
   Serial.print(_AngleOffset * 180 / PI, 4);
   Serial.println();
+}
+
+float AdjustMotorSignal(float motorSignal)
+{
+  // The motors don't start with low requested torque values -> we add an offset
+  if (abs(motorSignal) > 1)
+  {
+    if (motorSignal > 0)
+    {
+      return motorSignal + 5;
+    }
+    else
+    {
+      return motorSignal + 5;
+    }
+  }
+  else
+  {
+    return motorSignal;
+  }
 }
 
 void SendInfo()
