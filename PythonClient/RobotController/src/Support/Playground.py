@@ -6,7 +6,6 @@ Created on May 15, 2010
 
 import math 
 
-    
 
 def GetBaseAndExponent(floatValue, resolution=4):
     '''
