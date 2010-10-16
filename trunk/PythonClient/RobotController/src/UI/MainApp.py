@@ -6,18 +6,22 @@ Created on May 15, 2010
 
 from Model.MainModel import MainModel
 import wx
+import sys
 from MainWindow import MainWindow
-import matplotlib
+#import matplotlib
 #matplotlib.use('WXAgg')
 
 
 app = wx.App(False)
 
-mainModel = MainModel()
-frame = MainWindow(None, mainModel)
-frame.Show()
+try:
+    mainModel = MainModel(serialPort = 6)
+    frame = MainWindow(None, mainModel)
+    frame.Show()
 
-app.MainLoop()
-app.AppName = 'Balancing Robot'
+    app.MainLoop()
+    app.AppName = 'Balancing Robot'
 
-mainModel.Close()
+    mainModel.Close()
+except:
+    print "Unexpected error:", sys.exc_info()[0]

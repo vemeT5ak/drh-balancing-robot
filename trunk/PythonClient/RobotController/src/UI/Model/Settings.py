@@ -22,10 +22,14 @@ class Settings(object):
         '''
         Constructor
         '''
-        
-        # for details see: http://www.wxpython.org/docs/api/wx.StandardPaths-class.html
-        standardPaths = wx.StandardPaths_Get()
-        self._ConfigFilePath = os.path.join(standardPaths.GetUserLocalDataDir(), self._ConfigFileName)
+        # Get user's app data folder
+        # http://snipplr.com/view/7354/home-directory-crossos/
+        try:
+            from win32com.shell import shellcon, shell
+            self._UserLocalDataDir = shell.SHGetFolderPath(0, shellcon.CSIDL_LOCAL_APPDATA, 0, 0)
+        except ImportError: # quick semi-nasty fallback for non-windows/win32com case
+            self._UserLocalDataDir = os.path.expanduser("~")
+        self._ConfigFilePath = os.path.join(self._UserLocalDataDir, self._ConfigFileName)
         self._MainModel = mainModel
         
     def Load(self):
