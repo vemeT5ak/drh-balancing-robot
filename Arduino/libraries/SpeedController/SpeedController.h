@@ -23,17 +23,18 @@ class SpeedController
 {
 	public:
 		float CurrentSpeed;
-		float DistanceTraveled;
+		float DistanceIncrement;
+		float TotalDistanceTraveled;
 
 		// Base address is used as the address in the EEPROM to store the parameters to.
 		// The SpeedController consumes 12 bytes.
-		SpeedController(QuadratureEncoder* pQuadratureEncoder, float encoderTicksPerMeterPerSec, int baseAddress)
+		SpeedController(QuadratureEncoder* pQuadratureEncoder, float encoderTicksPerMeter, int baseAddress)
 		{
 			_pQuadratureEncoder = pQuadratureEncoder;
 			_EEPROMBaseAddress = baseAddress;
 			_TravelStartTickCount = 0;
 			_LastUpdateTickCount = 0;
-			_EncoderTicksPerMeterPerSec = 2300.0;
+			_EncoderTicksPerMeter = encoderTicksPerMeter;
 			_DirectionFactor = -1;
 
 			ReadFloatFromEEPROM(_EEPROMBaseAddress, _P);
@@ -52,14 +53,15 @@ class SpeedController
 
 			_LastUpdateTickCount = _TravelStartTickCount;
 			CurrentSpeed = 0.0;
-			DistanceTraveled = 0.0;
+			DistanceIncrement = 0.0;
+			TotalDistanceTraveled = 0.0;
 		}
 
-		void ResetDistanceTraveled(unsigned long millisecs)
-		{
-			_TravelStartMillisecs = millisecs;
-			_TravelStartTickCount = _pQuadratureEncoder->GetPosition();
-		}
+		//void ResetDistanceTraveled(unsigned long millisecs)
+		//{
+		//	_TravelStartMillisecs = millisecs;
+		//	_TravelStartTickCount = _pQuadratureEncoder->GetPosition();
+		//}
 
 		void Update(TimeInfo* pTimeInfo)
 		{
@@ -67,11 +69,10 @@ class SpeedController
 			long tickCountChange = _DirectionFactor * (currentTickCount - _LastUpdateTickCount);
 			_LastUpdateTickCount = currentTickCount;
 
-			CurrentSpeed = tickCountChange / _EncoderTicksPerMeterPerSec / pTimeInfo->SecondsSinceLastUpdate;
+			DistanceIncrement= tickCountChange / _EncoderTicksPerMeter;
+			CurrentSpeed = DistanceIncrement / pTimeInfo->SecondsSinceLastUpdate;
 
-			unsigned long millisecsSinceTravelStart = pTimeInfo->CurrentMillisecs - _TravelStartMillisecs;
-			tickCountChange = _DirectionFactor * (currentTickCount - _TravelStartTickCount);
-			DistanceTraveled = tickCountChange / _EncoderTicksPerMeterPerSec / millisecsSinceTravelStart * 1000.0;
+			TotalDistanceTraveled += DistanceIncrement;
 		}
 
 		// Inputs:
@@ -154,7 +155,7 @@ class SpeedController
 		float _SecondsSinceLastUpdate;
 		long _LastUpdateTickCount;
 
-		float _EncoderTicksPerMeterPerSec;
+		float _EncoderTicksPerMeter;
 		float _DirectionFactor; // +1 means moving forward increases the ticks; -1 means ticks decrease
 
 		float _P, _I, _D;
