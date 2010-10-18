@@ -8,7 +8,7 @@
 #define ADXL330_h
 
 #include "WProgram.h"
-#include "ADXL330.h"
+#include "UtilityFunctions.h"
 #include <math.h>
 
 // My rough measurements indicate the following analog values:
@@ -34,9 +34,19 @@ class ADXL330
 
 		void Update()
 		{
-			double xRaw = analogRead(_xPin);
-			double yRaw = analogRead(_yPin);
-			double zRaw = analogRead(_zPin);
+			double xRaw, yRaw, zRaw;
+			const int count = 5;
+
+			for(int i = 0; i < count; i++)
+			{
+				xRaw += analogRead(_xPin);
+				yRaw += analogRead(_yPin);
+				zRaw += analogRead(_zPin);
+			}
+
+			xRaw = xRaw / count;
+			yRaw = yRaw / count;
+			zRaw = zRaw / count;
 
 			/*Serial.print("double");
 			Serial.print("\t");
@@ -48,9 +58,12 @@ class ADXL330
 			Serial.println();*/
 
 			// Calibrate
-			XAcceleration = (xRaw - 518.0)   / -204.0 * 2.0;
-			YAcceleration = (yRaw - 515.5) / -209.0 * 2.0;
-			ZAcceleration = (zRaw - 507.0)   / -194.0 * 2.0;
+			// Low pass filter
+			const double contribution = 0.1;
+
+			XAcceleration = Smooth(XAcceleration, (xRaw - 518.0) / -204.0 * 2.0, contribution);
+			YAcceleration = Smooth(YAcceleration, (yRaw - 515.5) / -209.0 * 2.0, contribution);
+			ZAcceleration = Smooth(ZAcceleration, (zRaw - 507.0) / -194.0 * 2.0, contribution);
 
 			TotalAcceleration = sqrt(XAcceleration * XAcceleration + YAcceleration * YAcceleration + ZAcceleration * ZAcceleration);
 

@@ -8,6 +8,7 @@
 #define IDG300_h
 
 #include "WProgram.h"
+#include "UtilityFunctions.h"
 
 class IDG300
 {
@@ -32,25 +33,38 @@ class IDG300
 			//    or: 1.611328125 degree/sec for each step
 			const float c_Scaling = 1.611328125;
 
-			rawXValue = analogRead(_xPin);
-			rawYValue = analogRead(_yPin);
+			double xRaw, yRaw;
+			const int count = 5;
+
+			for(int i = 0; i < count; i++)
+			{
+				xRaw += analogRead(_xPin);
+				yRaw += analogRead(_yPin);
+			}
+
+			xRaw = xRaw / count;
+			yRaw = yRaw / count;
+
+			const double contribution = 0.1;
+			RawXValue = Smooth(RawXValue, xRaw, contribution);
+			RawYValue = Smooth(RawYValue, yRaw, contribution);
 
 			/*Serial.print("double");
 			Serial.print("\t");
-			Serial.print(rawXValue);
+			Serial.print(RawXValue);
 			Serial.print("\t");
-			Serial.print(rawYValue);
+			Serial.print(RawYValue);
 			Serial.println();*/
 
 			// Calibrate
-			XDegreesPerSec = (rawXValue - c_ZeroX) * c_Scaling;
-			YDegreesPerSec = (rawYValue - c_ZeroY) * c_Scaling;
+			XDegreesPerSec = (RawXValue - c_ZeroX) * c_Scaling;
+			YDegreesPerSec = (RawYValue - c_ZeroY) * c_Scaling;
 
 			XRadPerSec = XDegreesPerSec / 180.0 * M_PI;
 			YRadPerSec = YDegreesPerSec / 180.0 * M_PI;
 		}
 
-		float rawXValue, rawYValue; // public to facilitate calibration of zero point
+		float RawXValue, RawYValue; // public to facilitate calibration of zero point
 		float XDegreesPerSec, YDegreesPerSec;
 		float XRadPerSec, YRadPerSec;
 
