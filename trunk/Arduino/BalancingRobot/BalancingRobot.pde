@@ -7,7 +7,7 @@
 #include "TimeInfo.h"
 #include <Sabertooth.h>
 #include <QuadratureEncoder.h>
-#include <Balancer.h>
+//#include <Balancer.h>
 #include <UtilityFunctions.h>
 #include <ADXL330.h>
 #include <IDG300.h>
@@ -16,7 +16,7 @@
 
 #define c_MaxSpeed 1.0
 #define c_MetersPerTick 0.000430
-#define c_EncoderTicksPerMeterPerSec 2300.0
+#define c_EncoderTicksPerMeter 2300.0
 
 #define c_SteeringPotAnalogIn 1
 
@@ -44,9 +44,9 @@ QuadratureEncoder _EncoderMotor2(19, 25);
 #define c_PsxClockPin 34
 Psx _Psx;
 
-SpeedController _SpeedControllerMotor1 = SpeedController(&_EncoderMotor1, c_EncoderTicksPerMeterPerSec, 0);
-SpeedController _SpeedControllerMotor2 = SpeedController(&_EncoderMotor2, c_EncoderTicksPerMeterPerSec, 12);
-Balancer _Balancer = Balancer(24);
+SpeedController _SpeedControllerMotor1 = SpeedController(&_EncoderMotor1, c_EncoderTicksPerMeter, 0);
+SpeedController _SpeedControllerMotor2 = SpeedController(&_EncoderMotor2, c_EncoderTicksPerMeter, 12);
+//Balancer _Balancer = Balancer(24);
 
 #define c_AnalogInsCount 5
 int _AnalogInPins[] = {3, 4, 5, 6, 7};
@@ -195,8 +195,16 @@ void IssueCommands()
     _SpeedControllerMotor1.Update(&_TimeInfo);
     _SpeedControllerMotor2.Update(&_TimeInfo);
     float speedError = (_SpeedControllerMotor1.CurrentSpeed + _SpeedControllerMotor2.CurrentSpeed) / 2.0;
-    float positionError = (_SpeedControllerMotor1.DistanceTraveled + _SpeedControllerMotor2.DistanceTraveled) / 2.0;
-    
+    //float positionError = (_SpeedControllerMotor1.TotalDistanceTraveled + _SpeedControllerMotor2.TotalDistanceTraveled) / 2.0;
+
+    // read the analog values from pots
+    for(int i = 0; i < c_AnalogInsCount; i++)
+    {
+      int val = analogRead(_AnalogInPins[i]);
+  
+      _AnalogValues[i] = map(val, 0, 1023, 512, -512);
+    }
+       
     torque = CalculateTorque(_TiltCalculator.AngleRad);
     //torque = _Balancer.CalculateTorque(
     //  _TiltCalculator.AngleRad + _AngleOffset,
@@ -206,11 +214,12 @@ void IssueCommands()
     //  );
       
     // read steering potentiometer
+    
+    float steeringOffset = _AnalogValues[4] / 512.0 * -80;
     //int potiValue = analogRead(c_SteeringPotAnalogIn);  // read the input pin
     //float steeringOffset = potiValue / 4.0 - 127.0; // (-127 ... +127)
     
-    float steeringOffset = 0.0;
-    
+   
     motorSignal1 = AdjustMotorSignal(torque + steeringOffset);
     motorSignal2 = AdjustMotorSignal(torque - steeringOffset);
   }
@@ -240,14 +249,6 @@ void IssueCommands()
 
 float CalculateTorque(float angleRad)
 {
-  // read the analog values from pots
-  for(int i = 0; i < c_AnalogInsCount; i++)
-  {
-    int val = analogRead(_AnalogInPins[i]);
-
-    _AnalogValues[i] = map(val, 0, 1023, 512, -512);
-  }
-  
   float kp = _AnalogValues[2] / 512.0 * 5000;
   float ki = _AnalogValues[1] / 512.0 * 100;
   
@@ -429,7 +430,7 @@ void SetBalancerCoefficients()
   float k3 = GetFloatFromBaseAndExponent(_Messenger.readInt(), _Messenger.readInt());
   float k4 = GetFloatFromBaseAndExponent(_Messenger.readInt(), _Messenger.readInt());
 
-  _Balancer.SetCoefficients(k1, k2, k3, k4);
+  //_Balancer.SetCoefficients(k1, k2, k3, k4);
   
   _AngleOffset = PI / 180.0 * GetFloatFromBaseAndExponent(_Messenger.readInt(), _Messenger.readInt());
 }

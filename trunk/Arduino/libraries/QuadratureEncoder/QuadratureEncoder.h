@@ -105,7 +105,7 @@ private:
 
 	void Initialize(int pinA, int pinB, int pinA2)
 	{
-			_PinA = pinA;
+		_PinA = pinA;
 		_PinA2 = pinA2;
 
 		_PinB = pinB;
