@@ -49,9 +49,7 @@ class Balancer
 		}
 
 	private:
-		QuadratureEncoder* _pQuadratureEncoder;
 		int _EEPROMBaseAddress;
-		long _LastWheelPosition;
 
 		void SaveCoefficients()
 		{

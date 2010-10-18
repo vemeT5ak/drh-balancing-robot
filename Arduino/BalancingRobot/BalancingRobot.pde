@@ -8,6 +8,7 @@
 #include <Sabertooth.h>
 #include <QuadratureEncoder.h>
 #include <Balancer.h>
+#include <UtilityFunctions.h>
 #include <ADXL330.h>
 #include <IDG300.h>
 #include <TiltCalculator.h>
@@ -47,7 +48,10 @@ SpeedController _SpeedControllerMotor1 = SpeedController(&_EncoderMotor1, c_Enco
 SpeedController _SpeedControllerMotor2 = SpeedController(&_EncoderMotor2, c_EncoderTicksPerMeterPerSec, 12);
 Balancer _Balancer = Balancer(24);
 
-float _FixedAngleOffset = -4.0 * PI / 180;
+#define c_AnalogInsCount 5
+int _AnalogInPins[] = {3, 4, 5, 6, 7};
+int _AnalogValues[c_AnalogInsCount];
+
 float _AngleOffset = 0.0;
 
 // Instantiate Messenger object with the message function and the default separator (the space character)
@@ -93,7 +97,7 @@ void Warmup()
 {
   _TimeInfo.Update();
   
-  unsigned long endWarmupMillisecs = _TimeInfo.CurrentMillisecs + 2000; // 2 sec to settle in
+  unsigned long endWarmupMillisecs = _TimeInfo.CurrentMillisecs + 5000; // 5 sec to settle in
   UpdateTiltInfo();
 
   while(true)
@@ -153,8 +157,6 @@ void ReadSerial()
 
 void IssueCommands()
 {
-  //UpdateTiltInfo();
-  
   float motorSignal1, motorSignal2;
   float torque;
   
@@ -195,27 +197,30 @@ void IssueCommands()
     float speedError = (_SpeedControllerMotor1.CurrentSpeed + _SpeedControllerMotor2.CurrentSpeed) / 2.0;
     float positionError = (_SpeedControllerMotor1.DistanceTraveled + _SpeedControllerMotor2.DistanceTraveled) / 2.0;
     
-    torque = _Balancer.CalculateTorque(
-      _TiltCalculator.AngleRad + _FixedAngleOffset + _AngleOffset,
-      _TiltCalculator.AngularRateRadPerSec,
-      positionError,  // position position
-      speedError  // velocity error
-      );
+    torque = CalculateTorque(_TiltCalculator.AngleRad);
+    //torque = _Balancer.CalculateTorque(
+    //  _TiltCalculator.AngleRad + _AngleOffset,
+    //  _TiltCalculator.AngularRateRadPerSec,
+    //  positionError,  // position position
+    //  speedError  // velocity error
+    //  );
       
     // read steering potentiometer
-    int potiValue = analogRead(c_SteeringPotAnalogIn);  // read the input pin
-    float torqueOffset = potiValue / 4.0 - 127.0; // (-127 ... +127)
+    //int potiValue = analogRead(c_SteeringPotAnalogIn);  // read the input pin
+    //float steeringOffset = potiValue / 4.0 - 127.0; // (-127 ... +127)
     
-    motorSignal1 = AdjustMotorSignal(torque + torqueOffset);
-    motorSignal2 = AdjustMotorSignal(torque - torqueOffset);
+    float steeringOffset = 0.0;
+    
+    motorSignal1 = AdjustMotorSignal(torque + steeringOffset);
+    motorSignal2 = AdjustMotorSignal(torque - steeringOffset);
   }
 
   _Sabertooth.SetSpeedMotorB(motorSignal1);
   _Sabertooth.SetSpeedMotorA(motorSignal2);
 
-  Serial.print(_TiltCalculator.MeasuredAngleRad + _FixedAngleOffset + _AngleOffset, 4); // 4 decimal places
+  Serial.print(_TiltCalculator.MeasuredAngleRad + _AngleOffset, 4); // 4 decimal places
   Serial.print("\t");
-  Serial.print(_TiltCalculator.AngleRad + _FixedAngleOffset + _AngleOffset, 4);
+  Serial.print(_TiltCalculator.AngleRad + _AngleOffset, 4);
   Serial.print("\t");
   Serial.print(_TiltCalculator.AngularRateRadPerSec, 4);
   Serial.print("\t");
@@ -231,6 +236,50 @@ void IssueCommands()
   Serial.print("\t");
   Serial.print(_AngleOffset * 180 / PI, 4);
   Serial.println();
+}
+
+float CalculateTorque(float angleRad)
+{
+  // read the analog values from pots
+  for(int i = 0; i < c_AnalogInsCount; i++)
+  {
+    int val = analogRead(_AnalogInPins[i]);
+
+    _AnalogValues[i] = map(val, 0, 1023, 512, -512);
+  }
+  
+  float kp = _AnalogValues[2] / 512.0 * 5000;
+  float ki = _AnalogValues[1] / 512.0 * 100;
+  
+  float maxIntegral = 0.0;
+  if (ki > 0.001)
+  {
+    maxIntegral = 127 / ki;
+  }
+
+  float kd = _AnalogValues[0] / 512.0 * 500;
+  _AngleOffset = _AnalogValues[3] / 512.0 * 10.0 / 180 * PI;
+
+  float error = angleRad - _AngleOffset;
+
+  static float lastError = 0;
+  static float integratedError = 0;
+
+  if (abs(error) > 10.0 / 180.0 * PI)
+  {
+    // if we tilt too far we give up
+    lastError = 0;
+    integratedError = 0;
+    return 0.0;
+  }
+
+  float pTerm = kp * error;
+  integratedError = constrain(integratedError + error * _TimeInfo.SecondsSinceLastUpdate, -maxIntegral, +maxIntegral);
+  float iTerm = ki * integratedError;
+  float dTerm = kd * (error - lastError) / _TimeInfo.SecondsSinceLastUpdate;
+  lastError = error;
+  
+  return pTerm + iTerm + dTerm;
 }
 
 float AdjustMotorSignal(float motorSignal)
@@ -255,9 +304,9 @@ float AdjustMotorSignal(float motorSignal)
 
 void SendInfo()
 {
-  Serial.print(_TiltCalculator.MeasuredAngleRad + _FixedAngleOffset + _AngleOffset, 4); // 4 decimal places
+  Serial.print(_TiltCalculator.MeasuredAngleRad + _AngleOffset, 4); // 4 decimal places
   Serial.print("\t");
-  Serial.print(_TiltCalculator.AngleRad + _FixedAngleOffset + _AngleOffset, 4);
+  Serial.print(_TiltCalculator.AngleRad +   _AngleOffset, 4);
   Serial.print("\t");
   Serial.print(_TiltCalculator.AngularRateRadPerSec, 4);
   Serial.print("\t");
