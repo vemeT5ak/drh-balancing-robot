@@ -3,11 +3,9 @@
 #include <math.h>
 #include <Messenger.h>
 #include <EEPROM.h>
-#include "Psx_analog.h"      // Includes the Psx Library to access a Sony Playstation controller
 #include "TimeInfo.h"
 #include <Sabertooth.h>
 #include <QuadratureEncoder.h>
-//#include <Balancer.h>
 #include <UtilityFunctions.h>
 #include <ADXL330.h>
 #include <IDG300.h>
@@ -37,16 +35,8 @@ QuadratureEncoder _EncoderMotor1(18, 24, 22);
 // The quadrature encoder for motor 2 uses external interupt 4 on pin 19 and the regular input at pin 25
 QuadratureEncoder _EncoderMotor2(19, 25);
 
-// Sony Playstation 2 Controller
-#define c_PsxDataPin 36
-#define c_PsxCommandPin 35
-#define c_PsxAttPin 33
-#define c_PsxClockPin 34
-Psx _Psx;
-
 SpeedController _SpeedControllerMotor1 = SpeedController(&_EncoderMotor1, c_EncoderTicksPerMeter, 0);
 SpeedController _SpeedControllerMotor2 = SpeedController(&_EncoderMotor2, c_EncoderTicksPerMeter, 12);
-//Balancer _Balancer = Balancer(24);
 
 #define c_AnalogInsCount 5
 int _AnalogInPins[] = {3, 4, 5, 6, 7};
@@ -60,8 +50,6 @@ Messenger _Messenger = Messenger();
 float _CommandedSpeedMotor1 = 0.0;
 float _CommandedSpeedMotor2 = 0.0;
 
-boolean _PS2ControllerActive = false;
-
 #define c_UpdateInterval 5 // update interval in milli seconds
 
 long _StartPositionTicks = 0;
@@ -73,9 +61,6 @@ void setup()
   
   attachInterrupt(5, HandleMotor1InterruptA, CHANGE); // Pin 18 
   attachInterrupt(4, HandleMotor2InterruptA, CHANGE); // Pin 19
-
-  _Psx.setupPins(c_PsxDataPin, c_PsxCommandPin, c_PsxAttPin, c_PsxClockPin);  // Defines what each pin is used (Data Pin #, Cmnd Pin #, Att Pin #, Clk Pin #)
-  _Psx.initcontroller(psxAnalog);
 
   _Messenger.attach(OnMssageCompleted);
   
@@ -160,69 +145,36 @@ void IssueCommands()
   float motorSignal1, motorSignal2;
   float torque;
   
-  _Psx.poll(); // poll the Sony Playstation controller
-  if (_Psx.Controller_mode == 140)
+  _SpeedControllerMotor1.Update(&_TimeInfo);
+  _SpeedControllerMotor2.Update(&_TimeInfo);
+  float speedError = (_SpeedControllerMotor1.CurrentSpeed + _SpeedControllerMotor2.CurrentSpeed) / 2.0;
+  //float positionError = (_SpeedControllerMotor1.TotalDistanceTraveled + _SpeedControllerMotor2.TotalDistanceTraveled) / 2.0;
+
+  // read the analog values from pots
+  for(int i = 0; i < c_AnalogInsCount; i++)
   {
-    // analog mode; we use the right joystick to determine the desired speed
-    _PS2ControllerActive = true;
+    int val = analogRead(_AnalogInPins[i]);
 
-    float mainSpeed = -(_Psx.Right_y - 128.0) / 128.0 * c_MaxSpeed;
-    
-    float rightLeftRatio = -(_Psx.Right_x - 128) / 128.0;
-    
-    _CommandedSpeedMotor1 = mainSpeed + rightLeftRatio * c_MaxSpeed;
-    _CommandedSpeedMotor2 = mainSpeed - rightLeftRatio * c_MaxSpeed;
-    
-    if (_CommandedSpeedMotor1 > _TopSpeed) { _CommandedSpeedMotor1 = _TopSpeed; }
-    if (_CommandedSpeedMotor2 > _TopSpeed) { _CommandedSpeedMotor2 = _TopSpeed; }
-
-    motorSignal1 = _SpeedControllerMotor1.ComputeOutput(_CommandedSpeedMotor1, &_TimeInfo);
-    motorSignal2 = _SpeedControllerMotor2.ComputeOutput(_CommandedSpeedMotor2, &_TimeInfo);
+    _AnalogValues[i] = map(val, 0, 1023, 512, -512);
   }
-  else
-  {
-    if (_PS2ControllerActive)
-    {
-      // we switched from PS2 controller active to not active
-      _PS2ControllerActive = false;
-      motorSignal1 = 0;
-      motorSignal2 = 0;
-      
-      _CommandedSpeedMotor1 = 0;
-      _CommandedSpeedMotor2 = 0;
-    }
+     
+  torque = CalculateTorque(_TiltCalculator.AngleRad);
+  //torque = _Balancer.CalculateTorque(
+  //  _TiltCalculator.AngleRad + _AngleOffset,
+  //  _TiltCalculator.AngularRateRadPerSec,
+  //  positionError,  // position position
+  //  speedError  // velocity error
+  //  );
     
-    _SpeedControllerMotor1.Update(&_TimeInfo);
-    _SpeedControllerMotor2.Update(&_TimeInfo);
-    float speedError = (_SpeedControllerMotor1.CurrentSpeed + _SpeedControllerMotor2.CurrentSpeed) / 2.0;
-    //float positionError = (_SpeedControllerMotor1.TotalDistanceTraveled + _SpeedControllerMotor2.TotalDistanceTraveled) / 2.0;
-
-    // read the analog values from pots
-    for(int i = 0; i < c_AnalogInsCount; i++)
-    {
-      int val = analogRead(_AnalogInPins[i]);
+  // read steering potentiometer
   
-      _AnalogValues[i] = map(val, 0, 1023, 512, -512);
-    }
-       
-    torque = CalculateTorque(_TiltCalculator.AngleRad);
-    //torque = _Balancer.CalculateTorque(
-    //  _TiltCalculator.AngleRad + _AngleOffset,
-    //  _TiltCalculator.AngularRateRadPerSec,
-    //  positionError,  // position position
-    //  speedError  // velocity error
-    //  );
-      
-    // read steering potentiometer
-    
-    float steeringOffset = _AnalogValues[4] / 512.0 * -80;
-    //int potiValue = analogRead(c_SteeringPotAnalogIn);  // read the input pin
-    //float steeringOffset = potiValue / 4.0 - 127.0; // (-127 ... +127)
-    
-   
-    motorSignal1 = AdjustMotorSignal(torque + steeringOffset);
-    motorSignal2 = AdjustMotorSignal(torque - steeringOffset);
-  }
+  float steeringOffset = _AnalogValues[4] / 512.0 * -80;
+  //int potiValue = analogRead(c_SteeringPotAnalogIn);  // read the input pin
+  //float steeringOffset = potiValue / 4.0 - 127.0; // (-127 ... +127)
+  
+ 
+  motorSignal1 = AdjustMotorSignal(torque + steeringOffset);
+  motorSignal2 = AdjustMotorSignal(torque - steeringOffset);
 
   _Sabertooth.SetSpeedMotorB(motorSignal1);
   _Sabertooth.SetSpeedMotorA(motorSignal2);
