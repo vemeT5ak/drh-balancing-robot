@@ -13,12 +13,11 @@
 #include <SpeedController.h>
 
 #define c_MaxSpeed 1.0
-#define c_MetersPerTick 0.000430
 #define c_EncoderTicksPerMeter 2300.0
 
-#define c_SteeringPotAnalogIn 1
-
 float _TopSpeed = c_MaxSpeed * 0.9;
+
+#define c_SendInfo 1 // 0: Don't send info via the serial port; 1: Send info
 
 TimeInfo _TimeInfo = TimeInfo();
 ADXL330 _ADXL330 = ADXL330(15,14,13);
@@ -38,11 +37,16 @@ QuadratureEncoder _EncoderMotor2(19, 25);
 SpeedController _SpeedControllerMotor1 = SpeedController(&_EncoderMotor1, c_EncoderTicksPerMeter, 0);
 SpeedController _SpeedControllerMotor2 = SpeedController(&_EncoderMotor2, c_EncoderTicksPerMeter, 12);
 
-#define c_AnalogInsCount 5
-int _AnalogInPins[] = {3, 4, 5, 6, 7};
-int _AnalogValues[c_AnalogInsCount];
-
+#define c_KpAnalogPin 5
+float _Kp = 0.0;
+#define c_KiAnalogPin 4
+float _Ki = 0.0;
+#define c_KdAnalogPin 3
+float _Kd = 0.0;
+#define c_AngleOffsetPin 6
 float _AngleOffset = 0.0;
+#define c_SteeringOffsetPin 7
+float _SteeringOffset = 0.0;
 
 // Instantiate Messenger object with the message function and the default separator (the space character)
 Messenger _Messenger = Messenger(); 
@@ -150,25 +154,17 @@ void IssueCommands()
   float speedError = (_SpeedControllerMotor1.CurrentSpeed + _SpeedControllerMotor2.CurrentSpeed) / 2.0;
   //float positionError = (_SpeedControllerMotor1.TotalDistanceTraveled + _SpeedControllerMotor2.TotalDistanceTraveled) / 2.0;
 
-  // read the analog values from pots
-  for(int i = 0; i < c_AnalogInsCount; i++)
-  {
-    int val = analogRead(_AnalogInPins[i]);
-
-    _AnalogValues[i] = map(val, 0, 1023, 512, -512);
-  }
-     
-  torque = CalculateTorque(_TiltCalculator.AngleRad);
+  torque = CalculateTorque(_TiltCalculator.AngleRad, _TiltCalculator.AngularRateRadPerSec);
   //torque = _Balancer.CalculateTorque(
   //  _TiltCalculator.AngleRad + _AngleOffset,
   //  _TiltCalculator.AngularRateRadPerSec,
   //  positionError,  // position position
   //  speedError  // velocity error
   //  );
-    
-  // read steering potentiometer
-  
-  float steeringOffset = _AnalogValues[4] / 512.0 * -80;
+
+
+  int value = map(analogRead(c_SteeringOffsetPin), 0, 1023, -512, 512);
+  float steeringOffset = value / 512.0 * 80;
   //int potiValue = analogRead(c_SteeringPotAnalogIn);  // read the input pin
   //float steeringOffset = potiValue / 4.0 - 127.0; // (-127 ... +127)
   
@@ -179,58 +175,74 @@ void IssueCommands()
   _Sabertooth.SetSpeedMotorB(motorSignal1);
   _Sabertooth.SetSpeedMotorA(motorSignal2);
 
-  Serial.print(_TiltCalculator.MeasuredAngleRad + _AngleOffset, 4); // 4 decimal places
-  Serial.print("\t");
-  Serial.print(_TiltCalculator.AngleRad + _AngleOffset, 4);
-  Serial.print("\t");
-  Serial.print(_TiltCalculator.AngularRateRadPerSec, 4);
-  Serial.print("\t");
-  Serial.print(_SpeedControllerMotor1.CurrentSpeed, 4);
-  Serial.print("\t");
-  Serial.print(_SpeedControllerMotor2.CurrentSpeed, 4);
-  Serial.print("\t");
-  Serial.print(torque, 4);
-  Serial.print("\t");
-  Serial.print(motorSignal1, 4);
-  Serial.print("\t");
-  Serial.print(motorSignal2, 4);
-  Serial.print("\t");
-  Serial.print(_AngleOffset * 180 / PI, 4);
-  Serial.println();
+  if (c_SendInfo == 1)
+  {
+    Serial.print(_TiltCalculator.MeasuredAngleRad + _AngleOffset, 4); // 4 decimal places
+    Serial.print("\t");
+    Serial.print(_TiltCalculator.AngleRad + _AngleOffset, 4);
+    Serial.print("\t");
+    Serial.print(_TiltCalculator.AngularRateRadPerSec, 4);
+    Serial.print("\t");
+    Serial.print(_SpeedControllerMotor1.CurrentSpeed, 4);
+    Serial.print("\t");
+    Serial.print(_SpeedControllerMotor2.CurrentSpeed, 4);
+    Serial.print("\t");
+    Serial.print(torque, 4);
+    Serial.print("\t");
+    Serial.print(motorSignal1, 4);
+    Serial.print("\t");
+    Serial.print(motorSignal2, 4);
+    Serial.print("\t");
+    Serial.print(_AngleOffset * 180 / PI, 4);
+    Serial.print("\tP:");
+    Serial.print(_Kp, 4);
+    Serial.print("\tI:");
+    Serial.print(_Ki, 4);
+    Serial.print("\tD:");
+    Serial.print(_Kd, 4);
+    Serial.println();
+  }
 }
 
-float CalculateTorque(float angleRad)
+float CalculateTorque(float angleRad, float angularRateRadPerSec)
 {
-  float kp = _AnalogValues[2] / 512.0 * 5000;
-  float ki = _AnalogValues[1] / 512.0 * 100;
+  int value = map(analogRead(c_KpAnalogPin), 0, 1023, 1023, 0);
+  _Kp = value / 1023.0 * 5000;
+
+  value = map(analogRead(c_KiAnalogPin), 0, 1023, 1023, 0);
+  _Ki = value / 512.0 * 200;
   
   float maxIntegral = 0.0;
-  if (ki > 0.001)
+  if (_Ki > 0.001)
   {
-    maxIntegral = 127 / ki;
+    maxIntegral = 127 / _Ki;
   }
 
-  float kd = _AnalogValues[0] / 512.0 * 500;
-  _AngleOffset = _AnalogValues[3] / 512.0 * 10.0 / 180 * PI;
+  value = map(analogRead(c_KdAnalogPin), 0, 1023, 1023, 0);
+  _Kd = value / 512.0 * 500;
+
+  value = map(analogRead(c_AngleOffsetPin), 0, 1023, 512, -512);
+  _AngleOffset = value / 512.0 * 10.0 / 180 * PI;
 
   float error = angleRad - _AngleOffset;
-
+  static float integratedError;
   static float lastError = 0;
-  static float integratedError = 0;
-
+  
   if (abs(error) > 10.0 / 180.0 * PI)
   {
     // if we tilt too far we give up
-    lastError = 0;
     integratedError = 0;
     return 0.0;
   }
 
-  float pTerm = kp * error;
+  float pTerm = _Kp * error;
+  
   integratedError = constrain(integratedError + error * _TimeInfo.SecondsSinceLastUpdate, -maxIntegral, +maxIntegral);
-  float iTerm = ki * integratedError;
-  float dTerm = kd * (error - lastError) / _TimeInfo.SecondsSinceLastUpdate;
+  float iTerm = _Ki * integratedError;
+  
+  float dTerm = _Kd * (error - lastError) / _TimeInfo.SecondsSinceLastUpdate;
   lastError = error;
+  //float dTerm = _Kd * angularRateRadPerSec;
   
   return pTerm + iTerm + dTerm;
 }
@@ -253,28 +265,6 @@ float AdjustMotorSignal(float motorSignal)
   {
     return motorSignal;
   }
-}
-
-void SendInfo()
-{
-  Serial.print(_TiltCalculator.MeasuredAngleRad + _AngleOffset, 4); // 4 decimal places
-  Serial.print("\t");
-  Serial.print(_TiltCalculator.AngleRad +   _AngleOffset, 4);
-  Serial.print("\t");
-  Serial.print(_TiltCalculator.AngularRateRadPerSec, 4);
-  Serial.print("\t");
-  Serial.print(_SpeedControllerMotor1.CurrentSpeed, 4);
-  Serial.print("\t");
-  Serial.print(_SpeedControllerMotor2.CurrentSpeed, 4);
-  Serial.print("\t");
-  Serial.print(0.0, 4);
-  Serial.print("\t");
-  Serial.print(0.0, 4);
-  Serial.print("\t");
-  Serial.print(0.0, 4);
-  Serial.print("\t");
-  Serial.print(_AngleOffset * 180 / PI, 4);
-  Serial.println();
 }
 
 // Interrupt service routines for motor 1 quadrature encoder
