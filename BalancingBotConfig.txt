@@ -1,0 +1,14 @@
+[SpeedControl]
+i = 500.0
+p = 20.0
+d = 0.0
+
+[BalancerParams]
+k3 = -1.0
+k2 = 5.0
+k1 = 20.0
+k4 = 1.5
+
+[General]
+port = 6
+
